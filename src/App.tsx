@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Data from './titles.json'
 import styled from 'styled-components';
 
@@ -6,38 +6,44 @@ import styled from 'styled-components';
 
 interface NamedTitle {
 	title: string;
-	index: number;
+	found: boolean;
 }
+
+const sortNoCase = (a: string, b: string) => {
+	const nameA = a.toLowerCase();
+	  const nameB = b.toLowerCase();
+
+	  if (nameA < nameB) {
+		return -1;
+	  }
+
+	  if (nameA > nameB) {
+		return 1;
+	  }
+
+	  // names must be equal
+	  return 0;
+}
+
+const adjectiveList = Data.Adjective.sort(sortNoCase);
+const subjectList = Data.Subject.sort(sortNoCase);
 
 function App() {
 
-	const sortNoCase = (a: string, b: string) => {
-		const nameA = a.toLowerCase();
-  		const nameB = b.toLowerCase();
-
-  		if (nameA < nameB) {
-  		  return -1;
-  		}
-
-  		if (nameA > nameB) {
-  		  return 1;
-  		}
-	
-  		// names must be equal
-  		return 0;
-	}
-
-	const [ allAdjectives ] = useState(Data.Adjective.sort(sortNoCase));
-	const [ allSubjects ] = useState(Data.Subject.sort(sortNoCase));
+	const [ adjectives, setAdjectives ] = useState<NamedTitle[]>(adjectiveList.map((value) => { return { title: value, found: false}}));
+	const [ subjects, setSubjects ] = useState<NamedTitle[]>(subjectList.map((value) => { return { title: value, found: false}}));
 	const [ adjectiveInput, setAdjectiveInput] = useState("");
 	const [ subjectInput, setSubjectInput] = useState("");
 
-	const [ namedAdjectives, setNamedAdjectives ] = useState<NamedTitle[]>([]);
-	const [ namedSubjects, setNamedSubjects ] = useState<NamedTitle[]>([]);
+	//const [ namedAdjectives, setNamedAdjectives ] = useState<NamedTitle[]>([]);
+	//const [ namedSubjects, setNamedSubjects ] = useState<NamedTitle[]>([]);
 
-	const [isRunning, setIsRunning] = useState(false);
-	const [timeState, setTimer] = useState({ time: 0, startTime: Date.now()});
+	const [ isRunning, setIsRunning ] = useState(false);
+	const [ timeState, setTimer ] = useState({ time: 0, startTime: Date.now()});
 	const interval = useRef<number | null>(null);
+
+	const [ currentAdjective, setCurrentAdjective ] = useState(0);
+	const [ currentSubject, setCurrentSubject ] = useState(0);
 
 	const formatTime = (time: number) => {
 		//HH:MM:SS
@@ -58,6 +64,14 @@ function App() {
 			startTime: Date.now()
 		}));
 	}
+
+	const numAdjectives = useMemo(() => {
+		return adjectives.filter((item) => item.found).length;
+	}, [adjectives])
+
+	const numSubjects = useMemo(() => {
+		return subjects.filter((item) => item.found).length;
+	}, [subjects]);
 
 	useEffect(() => {
 		if(isRunning && !interval.current) {
@@ -83,8 +97,8 @@ function App() {
 	}
 
 	const onPressReset = () => {
-		setNamedAdjectives([]);
-		setNamedSubjects([]);
+		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false}}));
+		setSubjects(subjectList.map((value) => { return { title: value, found: false}}));
 		setIsRunning(false);
 		setTimer(prevState => ({ time: 0, startTime: Date.now()}));
 	}
@@ -108,19 +122,87 @@ function App() {
 		return titleA === titleB;
 	}
 
-	const checkInput = (text: string, allValues: string[], namedValues: NamedTitle[], setTextInput: React.Dispatch<React.SetStateAction<string>>, setNamedValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>) => {
+	const getTitleListIndex = (titleIndex: number, values: NamedTitle[]) => {
+
+		console.log(titleIndex);
+
+		return values.reduce((effectiveIndex, item, index, array) => {
+			if(index > titleIndex) return effectiveIndex;
+
+			console.log(`${effectiveIndex} ${JSON.stringify(item)} ${index}`);
+
+			if(item.found) {
+				const nextUnfoundIndex = getPreviousUnfoundIndex(index, array);
+
+				return effectiveIndex + (index < titleIndex ? 1 : 0) + (nextUnfoundIndex < index ? 1 : 0);
+			}
+			else {
+				return effectiveIndex;
+			}
+		}, 0);
+	};
+
+	const renderTitle = (item: NamedTitle, index: number, values: NamedTitle[]) => {
+
+		if(!item.found && index === values.length - 1) {
+			const nextUnfoundIndex = getPreviousUnfoundIndex(index, values);
+			const remainingAbove = (index + 1) - nextUnfoundIndex;
+
+			if(remainingAbove <= 0) return;
+
+			return (
+				<NamedItem key={index}>
+					<div>{`??? (${remainingAbove} Remain)`}</div>
+				</NamedItem>
+			);
+		}
+
+		if(!item.found) return;
+
+		const nextUnfoundIndex = getPreviousUnfoundIndex(index, values);
+		const remainingAbove = index - nextUnfoundIndex;
+
+		return (
+			<NamedItem key={index}>
+				{remainingAbove > 0 && (
+					<div>{`??? (${remainingAbove} Remain)`}</div>
+				)}
+				<div>{item.title}</div>
+			</NamedItem>
+		);
+	};
+
+	const getPreviousUnfoundIndex = (index: number, values: NamedTitle[]) => {
+		for(let i = index - 1; i >= 0; i--) {
+			if(values[i].found) return i + 1;
+		}
+
+		return 0;
+	};
+
+	const checkInput = (
+		text: string, 
+		values: NamedTitle[], 
+		setTextInput: React.Dispatch<React.SetStateAction<string>>, 
+		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
+		setCurrentItem: React.Dispatch<React.SetStateAction<number>>) => {
+			
 		setTextInput(text);
 
-		const match = allValues.find((item) => { return titleMatch(item, text) });
-		const matchIndex = allValues.indexOf(match ? match : "");
+		const match = values.find((item) => { return titleMatch(item.title, text) });
 
-		if(match && !namedValues.some((item) => { return titleMatch(item.title, text) })) {
-			setTextInput("");
+		if(!match || match.found) return;
 
-			setIsRunning(true);
+		const matchIndex = values.indexOf(match);
 
-			setNamedValues([ ...namedValues, {title: match, index: matchIndex}].sort((a: NamedTitle, b: NamedTitle) => { return sortNoCase(a.title, b.title); }));
-		}
+		setTextInput("");
+
+		setIsRunning(true);
+
+		const newValues = values.map((item, index) => { return (matchIndex === index) ? { ...item, found: true } : item; });
+
+		setValues(newValues);
+		setCurrentItem(getTitleListIndex(matchIndex, newValues));
 	}
 
   return (
@@ -135,66 +217,42 @@ function App() {
 				</TimeDisplay>
 			</TopRow>
 			<TextBox>
-				<AdjectiveText>Adjectives ({`${namedAdjectives.length}/${allAdjectives.length}`})</AdjectiveText>
-				<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, allAdjectives, namedAdjectives, setAdjectiveInput, setNamedAdjectives); }} />
-				<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, allSubjects, namedSubjects, setSubjectInput, setNamedSubjects); }} />
-				<SubjectText>Subjects ({`${namedSubjects.length}/${allSubjects.length}`})</SubjectText>
+				<AdjectiveText>Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
+				<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, adjectives, setAdjectiveInput, setAdjectives, setCurrentAdjective); }} />
+				<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, subjects, setSubjectInput, setSubjects, setCurrentSubject); }} />
+				<SubjectText>Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
 			</TextBox>
 			<Container>
 				<TitleList>
-				{
-					namedAdjectives.length <= 0 && (
-						<div>Enter your first adjective above!</div>
-					)
-				}
-				{
-					namedAdjectives.map((item, index) => {
-
-						const nextUnfoundIndex = (index <= 0) ? 0 : namedAdjectives[index - 1].index + 1;
-						const remainingAbove = item.index - nextUnfoundIndex;
-						const remainingBelow = (index === namedAdjectives.length - 1) ? (allAdjectives.length - 1) - item.index : 0;
-
-						return (
-							<NamedItem key={index}>
-								{remainingAbove > 0 && (
-									<div>{`??? (${remainingAbove} Remain)`}</div>
-								)}
-								<div>{item.title}</div>
-								{remainingBelow > 0 && (
-									<div>{`??? (${remainingBelow} Remain)`}</div>
-								)}
-							</NamedItem>
+					<ReelBackground />
+					<Reel style={{ top: `${-currentAdjective * 2}em`}}>
+						
+					{
+						numAdjectives <= 0 && (
+							<div>Enter your first adjective above!</div>
 						)
-					})
-				}
+					}
+					{
+						numAdjectives > 0 && adjectives.map(renderTitle)
+					}
+						
+					</Reel>
 				</TitleList>
-				<CenterBar />
+				<CenterBar>
+					<CenterBarReel />
+				</CenterBar>
 				<TitleListRight>
-				{
-					namedSubjects.length <= 0 && (
-						<div>Enter your first subject above!</div>
-					)
-				}
-				{
-					namedSubjects.map((item, index) => {
-
-						const nextUnfoundIndex = (index <= 0) ? 0 : namedSubjects[index - 1].index + 1;
-						const remainingAbove = item.index - nextUnfoundIndex;
-						const remainingBelow = (index === namedSubjects.length - 1) ? (allSubjects.length - 1) - item.index : 0;
-
-						return (
-							<NamedItem key={index}>
-								{remainingAbove > 0 && (
-									<div>{`??? (${remainingAbove} Remain)`}</div>
-								)}
-								<div>{item.title}</div>
-								{remainingBelow > 0 && (
-									<div>{`??? (${remainingBelow} Remain)`}</div>
-								)}
-							</NamedItem>
+					<ReelBackground />
+					<ReelRight style={{ top: `${-currentSubject * 2}em`}}>
+					{
+						numSubjects <= 0 && (
+							<div>Enter your first subject above!</div>
 						)
-					})
-				}
+					}
+					{
+						numSubjects > 0 && subjects.map(renderTitle)
+					}
+					</ReelRight>
 				</TitleListRight>
 			</Container>
 			<div>
@@ -208,7 +266,8 @@ function App() {
 
 export default App;
 
-const Background = styled.div`	
+const Background = styled.div`
+	position: relative;
 	width: 100vw;
 	height: 100vh;
 
@@ -220,6 +279,7 @@ const Background = styled.div`
 `;
 
 const Content = styled.div`
+	position: relative;
 	height: 100%;
 	margin: 0 auto;
 	display: flex;
@@ -272,13 +332,18 @@ const TextBox = styled.div`
 
 const Container = styled.div`
 	position: relative;
-	min-height: 0;
+	//min-height: 0;
+	height: 100%;
 	display: grid;
 	margin: 20px;
 	border-radius: 1rem;
 	grid-template-columns: 1fr max-content 1fr;
 
+	font-size: 35px;
+
 	background-color: #4c4c4c;
+
+	overflow: hidden;
 `;
 
 const NamedItem = styled.div`
@@ -286,25 +351,68 @@ const NamedItem = styled.div`
 `
 
 const TitleList = styled.div`
+	position: relative;
 	width: 100%;
-	height: 100%;
-	padding: 50px;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	justify-content: center;
-	font-size: 35px;
+	///height: 10em;
+	padding-left: 50px;
+	//overflow: auto;
 
-	overflow: auto;
+	display: flex;
+	align-items: center;
+
+	font-size: 35px;
 `;
 
 const TitleListRight = styled(TitleList)`
+	padding-left: 0;
+	padding-right: 50px;
+`
+
+const Reel = styled.div`
+	position: relative;
+	padding: 0 20px 0 100px;
+	//padding-right: 20px;
+	
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	justify-content: top;
+	font-size: 35px;
+
+	height: 2em;
+	width: 100%;
+
+	transition: top 1s ease-in-out;
+`;
+
+const ReelBackground = styled.div`
+	position: absolute;
+	//padding: 0 20px 0 50px;
+	//padding-right: 20px;
+	height: 2em;
+	width: calc(100% - 50px);
+	background-color: #282828;
+`
+
+const ReelRight = styled(Reel)`
+	padding: 0 100px 0 20px;
 	align-items: flex-start;
+	//padding-right: 0;
+	//padding-left: 20px;
 `
 
 const CenterBar = styled.div`
 	height: 100%;
 	width: 20px;
 
+	display: flex;
+	align-items: center;
+
 	background-color: #797979;
 `;
+
+const CenterBarReel = styled.div`
+	height: 2em;
+	width: 100%;
+	background-color: #282828;
+`

@@ -22,15 +22,15 @@ interface CurrentSelection {
 // - Make Start Screen and Results Screen
 // - Look into focus-based arrow keys
 // - Make proper credits section!
-// - Dim colors of non-selected titles
+// - Add sounds
 
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
 
 function App() {
 
-	const [ adjectives, setAdjectives ] = useState<NamedTitle[]>(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: 0, revealed: false}}));
-	const [ subjects, setSubjects ] = useState<NamedTitle[]>(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: 0, revealed: false}}));
+	const [ adjectives, setAdjectives ] = useState<NamedTitle[]>(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
+	const [ subjects, setSubjects ] = useState<NamedTitle[]>(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 	const [ adjectiveInput, setAdjectiveInput] = useState("");
 	const [ subjectInput, setSubjectInput] = useState("");
 
@@ -120,14 +120,15 @@ function App() {
 		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
 
 		if(isCtrl) {
-			doHint(title, index, values, setValues, setCurrentItem);
+			doReveal(title, index, values, setValues, setCurrentItem);
 			return;
 		}
 
 		if(isShift) {
-			doReveal(title, index, values, setValues, setCurrentItem);
 			return;
 		}
+
+		doHint(title, index, values, setValues, setCurrentItem);
 	}
 
 	const onPressHint = () => {
@@ -189,7 +190,7 @@ function App() {
 
 		hintedTitle.hinted = true;
 
-		let i = hintedTitle.lastHintedIndex;
+		let i = hintedTitle.lastHintedIndex + 1;
 
 		while(i < hintedTitle.title.length) {
 			//if the character is trivial (by surrounding titles), increment the hint amount for free
@@ -244,8 +245,8 @@ function App() {
 	}
 
 	const onPressReset = () => {
-		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: 0, revealed: false}}));
-		setSubjects(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: 0, revealed: false}}));
+		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
+		setSubjects(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 
 		setCurrentAdjective({ index: 0, transitionTime: 0});
 		setCurrentSubject({ index: 0, transitionTime: 0});
@@ -323,6 +324,7 @@ function App() {
 		item: NamedTitle, 
 		index: number, 
 		values: NamedTitle[], 
+		currentValue: CurrentSelection,
 		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
 		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
 		const getDisplayTitle = (item: NamedTitle) => {
@@ -354,7 +356,8 @@ function App() {
 		}
 
 		return (
-			<TitleEntry 
+			<TitleEntry
+			$selected={index === currentValue.index}
 			key={index} 
 			onClick={(event) => { onClickTitle(event.ctrlKey, event.shiftKey, item, index, values, setValues, setCurrentItem); }}>
 				{getDisplayTitle(item)}
@@ -395,7 +398,7 @@ function App() {
 						)
 					}
 					{
-						hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, setAdjectives, setCurrentAdjective); })
+						hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, currentAdjective, setAdjectives, setCurrentAdjective); })
 					}
 						
 					</Reel>
@@ -416,7 +419,7 @@ function App() {
 						)
 					}
 					{
-						hasStartedSubjects && subjects.map((item, index, array) => { return renderTitle(item, index, array, setSubjects, setCurrentSubject); })
+						hasStartedSubjects && subjects.map((item, index, array) => { return renderTitle(item, index, array, currentSubject, setSubjects, setCurrentSubject); })
 					}
 					</ReelRight>
 				</TitleListRight>
@@ -584,6 +587,10 @@ const CenterBarReel = styled.div`
 	background-color: #282828;
 `
 
-const TitleEntry = styled.div`
+const TitleEntry = styled.div<{ $selected: boolean}>`
 	cursor: pointer;
+
+	color: ${props => props.$selected ? '#ffffff' : '#afb1b0'};
+
+	transition: color 0.1s linear;
 `;

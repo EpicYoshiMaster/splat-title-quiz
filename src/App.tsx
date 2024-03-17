@@ -3,6 +3,21 @@ import Data from './titles.json'
 import styled from 'styled-components';
 import { sortNoCase, formatTime, randRange } from './helpers';
 
+type EasterEggGradient = {
+	title: string;
+	gradient: string[];
+	useVideo?: boolean;
+}
+
+const EASTER_EGGS: EasterEggGradient[] = [
+	{title: "If You Want To Go Back To The Default Gradient Maybe You Should Just Reload Instead", gradient: ['#1B1B1B']},
+	{title: "Trans Rights", gradient: ['#55cdfd', '#f6aab7', '#ffffff', '#f6aab7', '#55cefd']},
+	{title: "Yellow Square", gradient: ['#bfce3e']},
+	{title: "Pearlina", gradient: ['#d52800', '#fd9954', '#ffffff', '#d261a3', '#a30061']},
+	{title: "Open Season", gradient: ['#66472a', '#442e19', '#66472a', '#472f19', '#46301c', '#66472a', '#944cf8', '#1e1ea5','#1e1ea5', '#944cf8', '#66472a', '#493421', '#66472a']},
+	{title: "Trapinch Certified", gradient: ['#f29e77', '#f29e77', '#f29e77', '#f29e77', '#e8ecf2', '#f29e77']},
+	{title: "Cheese", gradient: ['#006efd'], useVideo: true}];
+
 const FREE_CHARACTERS = [" ", "-", "\u2013", "'"];
 
 interface NamedTitle {
@@ -22,7 +37,7 @@ interface CurrentSelection {
 // - Make Start Screen and Results Screen
 // - Look into focus-based arrow keys
 // - Make proper credits section!
-// - Add sounds
+// - Mobile friendly / final layout design
 
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
@@ -46,6 +61,27 @@ function App() {
 
 	const [ gaveUp, setGaveUp ] = useState(false);
 	const [ gameFinished, setGameFinished ] = useState(false);
+
+	const [ easterEggState, setEasterEggState ] = useState(0);
+
+	const currentGradient = useMemo(() => {
+
+		let gradient = "";
+
+		if(EASTER_EGGS[easterEggState].gradient.length == 1) {
+			return EASTER_EGGS[easterEggState].gradient[0] + ", " + EASTER_EGGS[easterEggState].gradient[0];
+		}
+
+		for(let i = 0; i < EASTER_EGGS[easterEggState].gradient.length; i++) {
+			gradient += EASTER_EGGS[easterEggState].gradient[i];
+
+			if(i < EASTER_EGGS[easterEggState].gradient.length - 1) {
+				gradient += ", ";
+			}
+		}
+
+		return gradient;
+	}, [easterEggState]);
 
 	const updateTime = () => {
 		setTimer(prevState => (
@@ -94,7 +130,7 @@ function App() {
 		if(!gameFinished && numAdjectives >= adjectives.length && numSubjects >= subjects.length) {
 			setGameFinished(true);
 		}
-	}, [numAdjectives, numSubjects]);
+	}, [numAdjectives, numSubjects, gameFinished]);
 
 	const setTitleValue = (
 		newValue: NamedTitle,
@@ -309,6 +345,18 @@ function App() {
 			
 		setTextInput(text);
 
+		// :)
+		const eggMatch = EASTER_EGGS.find((item) => { return titleMatch(item.title, text)});
+
+		if(eggMatch) {
+			const eggIndex = EASTER_EGGS.indexOf(eggMatch);
+
+			setEasterEggState(eggIndex);
+
+			setTextInput("");
+			return;
+		}
+
 		const match = values.find((item) => { return titleMatch(item.title, text) });
 
 		if(!match || match.found) return;
@@ -366,7 +414,13 @@ function App() {
 	};
 
   return (
-	<Background>
+	<>
+		<BackBackground $gradient={currentGradient}>
+			<SecretVideo autoPlay muted loop $active={EASTER_EGGS[easterEggState].useVideo}>
+				<source src="29quintillioncheese.mp4" type="video/mp4" />
+			</SecretVideo>
+			<Background />
+		</BackBackground>
 		<Content>
 			<TopRow>
 				<TopRowItem as="button" onClick={() => { onPressHint(); }}>Random Hint</TopRowItem>
@@ -376,43 +430,41 @@ function App() {
 				<TimeDisplay>
 					Time: {formatTime(timeState.time)}
 				</TimeDisplay>
-			</TopRow>
+  			</TopRow>
 			<TextBox>
 				<AdjectiveText>Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
 				<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, adjectives, currentAdjective, setAdjectiveInput, setAdjectives, setCurrentAdjective); }} />
 				<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, subjects, currentSubject, setSubjectInput, setSubjects, setCurrentSubject); }} />
 				<SubjectText>Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
 			</TextBox>
-			<Container>
-				<TitleList 
+			<Collection>
+				<TitleColumn 
 					tabIndex={0}
 					onKeyDown={(event) => { if(numAdjectives <= 0) return; updateKey(event.key, currentAdjective, adjectives, setCurrentAdjective) }} 
 					onWheel={(event) => { if(numAdjectives <= 0) return; translateNumItems(event.deltaY > 0 ? 1 : -1, currentAdjective, adjectives, setCurrentAdjective)}}>
 
-					<ReelBackground />
-					<Reel style={{ top: `${-currentAdjective.index * 2}em`}} $transitionTime={currentAdjective.transitionTime}>
-						
-					{
-						!hasStartedAdjectives && (
-							<div>Enter your first adjective above!</div>
-						)
-					}
-					{
-						hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, currentAdjective, setAdjectives, setCurrentAdjective); })
-					}
-						
-					</Reel>
-				</TitleList>
+					<TitleEntryBackground />
+					<TitleEntries style={{ top: `${-currentAdjective.index * 2}em`}} $transitionTime={currentAdjective.transitionTime}>
+						{
+							!hasStartedAdjectives && (
+								<div>Enter your first adjective above!</div>
+							)
+						}
+						{
+							hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, currentAdjective, setAdjectives, setCurrentAdjective); })
+						}
+					</TitleEntries>
+				</TitleColumn>
 				<CenterBar>
 					<CenterBarReel />
 				</CenterBar>
-				<TitleListRight 
+				<TitleColumnRight 
 					tabIndex={0}
 					onKeyDown={(event) => { if(numSubjects <= 0) return; updateKey(event.key, currentSubject, subjects, setCurrentSubject) }} 
 					onWheel={(event) => { if(numSubjects <= 0) return; translateNumItems(event.deltaY > 0 ? 1 : -1, currentSubject, subjects, setCurrentSubject)}}>
 
-					<ReelBackground />
-					<ReelRight style={{ top: `${-currentSubject.index * 2}em`}} $transitionTime={currentSubject.transitionTime}>
+					<TitleEntryBackground />
+					<TitleEntriesRight style={{ top: `${-currentSubject.index * 2}em`}} $transitionTime={currentSubject.transitionTime}>
 					{
 						!hasStartedSubjects && (
 							<div>Enter your first subject above!</div>
@@ -421,9 +473,9 @@ function App() {
 					{
 						hasStartedSubjects && subjects.map((item, index, array) => { return renderTitle(item, index, array, currentSubject, setSubjects, setCurrentSubject); })
 					}
-					</ReelRight>
-				</TitleListRight>
-			</Container>
+					</TitleEntriesRight>
+				</TitleColumnRight>
+			</Collection>
 			<div>
 				Click a title to get a hint, or Ctrl + Click a title to reveal it.
 			</div>
@@ -432,29 +484,55 @@ function App() {
 				Created by EpicYoshiMaster
 			</div>
 		</Content>
-	</Background>
-	
+	</>
   );
 }
 
 export default App;
 
-const Background = styled.div`
-	position: relative;
-	width: 100vw;
-	height: 100vh;
+//Sizing Constraints:
+//Background: static scaling, should be everywhere
+//No horizontal scrollbar
+//Collection:
+//Height based on screen height
+//Total width should be determined by the maximum possible text length
+
+const BackBackground = styled.div<{$gradient: string}>`
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
 
 	background-color: #000000;
-	background-size: 30%;
-	background-image: url('./camo-black.png');
+	background-image: linear-gradient(${props => props.$gradient});
+	background-attachment: fixed;
+`;
+
+const SecretVideo = styled.video<{$active?: boolean}>`
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	object-fit: fill;
+
+	opacity: ${props => props.$active ? 1 : 0};
+	transition: opacity 1s linear;
+`;
+
+const Background = styled.div`
+	position: relative;
+	width: 100%;
+	height: 100%;
+
+	background-size: 600px;
+	background-image: url('./camo-foreground-black.png');
+	background-attachment: fixed;
 
 	overflow: hidden;
 `;
 
 const Content = styled.div`
 	position: relative;
-	height: 100%;
-	margin: 0 auto;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -503,14 +581,17 @@ const TextBox = styled.div`
 	align-items: center;
 `;
 
-const Container = styled.div`
+//Describes the area containing all titles
+const Collection = styled.div`
 	position: relative;
 	//min-height: 0;
-	height: 100%;
+	height: 30em;
+
 	display: grid;
-	margin: 20px;
-	border-radius: 1rem;
 	grid-template-columns: 1fr max-content 1fr;
+
+	margin: 20px 0;
+	border-radius: 1rem;
 
 	font-size: 35px;
 
@@ -520,58 +601,53 @@ const Container = styled.div`
 	overflow: hidden;
 `;
 
-const TitleList = styled.div`
+const TitleColumn = styled.div`
 	position: relative;
-	width: 100%;
+	//width: 20em;
+	height: 100%;
 	///height: 10em;
 	padding-left: 50px;
 	//overflow: auto;
 
 	display: flex;
 	align-items: center;
-
-	font-size: 35px;
 `;
 
-const TitleListRight = styled(TitleList)`
+const TitleColumnRight = styled(TitleColumn)`
 	padding-left: 0;
 	padding-right: 50px;
 `
 
-const Reel = styled.div<{ $transitionTime: number}>`
+const TitleEntries = styled.div<{ $transitionTime: number}>`
 	position: relative;
 	padding: 0 20px 0 100px;
-	//padding-right: 20px;
 	
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
-	justify-content: top;
-	font-size: 35px;
 
+	font-size: 35px;
 	height: 2em;
 	width: 100%;
 
 	transition: top ${props => props.$transitionTime}s cubic-bezier(0.87, 0, 0.13, 1);
 `;
 
-const ReelBackground = styled.div`
+const TitleEntriesRight = styled(TitleEntries)`
+	padding: 0 100px 0 20px;
+	align-items: flex-start;
+	height: 2em;
+`
+
+const TitleEntryBackground = styled.div`
 	position: absolute;
-	//padding: 0 20px 0 50px;
-	//padding-right: 20px;
 	height: 2em;
 	width: calc(100% - 50px);
 	background-color: #282828;
 `
 
-const ReelRight = styled(Reel)`
-	padding: 0 100px 0 20px;
-	align-items: flex-start;
-	//padding-right: 0;
-	//padding-left: 20px;
-`
-
 const CenterBar = styled.div`
+	position: relative;
 	height: 100%;
 	width: 20px;
 

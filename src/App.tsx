@@ -497,6 +497,7 @@ export default App;
 //Height based on screen height
 //Total width should be determined by the maximum possible text length
 
+
 const BackBackground = styled.div<{$gradient: string}>`
 	position: fixed;
 	top: 0;
@@ -506,7 +507,6 @@ const BackBackground = styled.div<{$gradient: string}>`
 
 	background-color: #000000;
 	background-image: linear-gradient(${props => props.$gradient});
-	background-attachment: fixed;
 `;
 
 const SecretVideo = styled.video<{$active?: boolean}>`
@@ -526,19 +526,22 @@ const Background = styled.div`
 
 	background-size: 600px;
 	background-image: url('./camo-foreground-black.png');
-	background-attachment: fixed;
 
 	overflow: hidden;
 `;
 
 const Content = styled.div`
 	position: relative;
+
+	max-width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	
 	color: #ffffff;
-	font-size: 25px;
+
+	font-size: 1rem;
+	font-size: clamp(1rem, 2vw, 1.75rem);
 `;
 
 const TopRow = styled.div`
@@ -549,8 +552,11 @@ const TopRow = styled.div`
 const TopRowItem = styled.div`
 	margin: 10px;
 	padding: 10px;
+
 	font-family: Splatoon;
-	font-size: 25px;
+	font-size: 1rem;
+	font-size: clamp(1rem, 2vw, 1.75rem);
+
 	border-radius: 0.5rem;
 
 	color: #ffffff;
@@ -568,8 +574,12 @@ const SubjectText = styled(AdjectiveText)`
 `
 
 const TitleInput = styled.input`
+
 	font-family: Splatoon;
-	font-size: 25px;
+
+	font-size: 1rem;
+	font-size: clamp(1rem, 2vw, 1.75rem);
+
 	margin: 0 10px;
 `;
 
@@ -585,7 +595,7 @@ const TextBox = styled.div`
 const Collection = styled.div`
 	position: relative;
 	//min-height: 0;
-	height: 30em;
+	height: 80vh;
 
 	display: grid;
 	grid-template-columns: 1fr max-content 1fr;
@@ -593,9 +603,9 @@ const Collection = styled.div`
 	margin: 20px 0;
 	border-radius: 1rem;
 
-	font-size: 35px;
+	font-size: 1rem;
+	font-size: clamp(1rem, 2vw, 2rem);
 
-	//background: linear-gradient(#1b1b1b, #4c4c4c, #1b1b1b);
 	background-color: #4c4c4c;
 
 	overflow: hidden;
@@ -626,7 +636,6 @@ const TitleEntries = styled.div<{ $transitionTime: number}>`
 	flex-direction: column;
 	align-items: flex-end;
 
-	font-size: 35px;
 	height: 2em;
 	width: 100%;
 

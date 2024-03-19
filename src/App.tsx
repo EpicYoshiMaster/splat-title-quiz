@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Data from './titles.json'
 import styled from 'styled-components';
-import { sortNoCase, formatTime, randRange } from './helpers';
+import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem } from './helpers';
+import { GithubLogo } from '@phosphor-icons/react'
 
 type EasterEggGradient = {
 	title: string;
@@ -44,6 +45,8 @@ const subjectList = Data.Subject.sort(sortNoCase);
 
 function App() {
 
+	console.log(calcClampRem(0.6, 2, 320, 1000, 16));
+
 	const [ adjectives, setAdjectives ] = useState<NamedTitle[]>(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 	const [ subjects, setSubjects ] = useState<NamedTitle[]>(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 	const [ adjectiveInput, setAdjectiveInput] = useState("");
@@ -68,7 +71,7 @@ function App() {
 
 		let gradient = "";
 
-		if(EASTER_EGGS[easterEggState].gradient.length == 1) {
+		if(EASTER_EGGS[easterEggState].gradient.length === 1) {
 			return EASTER_EGGS[easterEggState].gradient[0] + ", " + EASTER_EGGS[easterEggState].gradient[0];
 		}
 
@@ -127,7 +130,7 @@ function App() {
 	}, [isRunning]);
 
 	useEffect(() => {
-		if(!gameFinished && numAdjectives >= adjectives.length && numSubjects >= subjects.length) {
+		if(!gameFinished && numAdjectives >= adjectiveList.length && numSubjects >= subjectList.length) {
 			setGameFinished(true);
 		}
 	}, [numAdjectives, numSubjects, gameFinished]);
@@ -431,72 +434,70 @@ function App() {
 					Time: {formatTime(timeState.time)}
 				</TimeDisplay>
   			</TopRow>
-			<TextBox>
-				<AdjectiveText>Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
-				<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, adjectives, currentAdjective, setAdjectiveInput, setAdjectives, setCurrentAdjective); }} />
-				<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, subjects, currentSubject, setSubjectInput, setSubjects, setCurrentSubject); }} />
-				<SubjectText>Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
-			</TextBox>
+			<TitleEntryArea>
+				<TitleTextEntryPair>
+					<AdjectiveText>Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
+					<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, adjectives, currentAdjective, setAdjectiveInput, setAdjectives, setCurrentAdjective); }} />
+				</TitleTextEntryPair>
+				<TitleTextEntryPairRight>
+					<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, subjects, currentSubject, setSubjectInput, setSubjects, setCurrentSubject); }} />
+					<SubjectText>Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
+				</TitleTextEntryPairRight>
+			</TitleEntryArea>
 			<Collection>
-				<TitleColumn 
+				<TitlePadding 
 					tabIndex={0}
 					onKeyDown={(event) => { if(numAdjectives <= 0) return; updateKey(event.key, currentAdjective, adjectives, setCurrentAdjective) }} 
 					onWheel={(event) => { if(numAdjectives <= 0) return; translateNumItems(event.deltaY > 0 ? 1 : -1, currentAdjective, adjectives, setCurrentAdjective)}}>
-
-					<TitleEntryBackground />
-					<TitleEntries style={{ top: `${-currentAdjective.index * 2}em`}} $transitionTime={currentAdjective.transitionTime}>
-						{
-							!hasStartedAdjectives && (
-								<div>Enter your first adjective above!</div>
-							)
-						}
-						{
-							hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, currentAdjective, setAdjectives, setCurrentAdjective); })
-						}
-					</TitleEntries>
-				</TitleColumn>
+					<TitleColumn>
+						<TitleEntryBackground />
+						<TitleEntries style={{ top: `${-currentAdjective.index * 2}em`}} $transitionTime={currentAdjective.transitionTime}>
+							{
+								!hasStartedAdjectives && (
+									<div>Enter your first adjective above!</div>
+								)
+							}
+							{
+								hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, currentAdjective, setAdjectives, setCurrentAdjective); })
+							}
+						</TitleEntries>
+					</TitleColumn>
+				</TitlePadding>
 				<CenterBar>
 					<CenterBarReel />
 				</CenterBar>
-				<TitleColumnRight 
+				<TitlePaddingRight 
 					tabIndex={0}
 					onKeyDown={(event) => { if(numSubjects <= 0) return; updateKey(event.key, currentSubject, subjects, setCurrentSubject) }} 
 					onWheel={(event) => { if(numSubjects <= 0) return; translateNumItems(event.deltaY > 0 ? 1 : -1, currentSubject, subjects, setCurrentSubject)}}>
 
-					<TitleEntryBackground />
-					<TitleEntriesRight style={{ top: `${-currentSubject.index * 2}em`}} $transitionTime={currentSubject.transitionTime}>
-					{
-						!hasStartedSubjects && (
-							<div>Enter your first subject above!</div>
-						)
-					}
-					{
-						hasStartedSubjects && subjects.map((item, index, array) => { return renderTitle(item, index, array, currentSubject, setSubjects, setCurrentSubject); })
-					}
-					</TitleEntriesRight>
-				</TitleColumnRight>
+					<TitleColumnRight>
+						<TitleEntryBackground />
+						<TitleEntriesRight style={{ top: `${-currentSubject.index * 2}em`}} $transitionTime={currentSubject.transitionTime}>
+						{
+							!hasStartedSubjects && (
+								<div>Enter your first subject above!</div>
+							)
+						}
+						{
+							hasStartedSubjects && subjects.map((item, index, array) => { return renderTitle(item, index, array, currentSubject, setSubjects, setCurrentSubject); })
+						}
+						</TitleEntriesRight>
+					</TitleColumnRight>
+				</TitlePaddingRight>
 			</Collection>
-			<div>
-				Click a title to get a hint, or Ctrl + Click a title to reveal it.
-			</div>
-			<div>You can navigate using the scroll wheel or arrow keys, press left or right to move in increments of 10 titles.</div>
-			<div>
-				Created by EpicYoshiMaster
-			</div>
+			<Credits>
+				<div>Click or press a title for a hint.</div>
+				<div>Ctrl + Click or long press a title to reveal it.</div>
+				<div>Created by EpicYoshiMaster!</div>
+				<div><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></div>
+			</Credits>
 		</Content>
 	</>
   );
 }
 
 export default App;
-
-//Sizing Constraints:
-//Background: static scaling, should be everywhere
-//No horizontal scrollbar
-//Collection:
-//Height based on screen height
-//Total width should be determined by the maximum possible text length
-
 
 const BackBackground = styled.div<{$gradient: string}>`
 	position: fixed;
@@ -533,31 +534,37 @@ const Background = styled.div`
 const Content = styled.div`
 	position: relative;
 
-	max-width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	
 	color: #ffffff;
-
-	font-size: 1rem;
-	font-size: clamp(1rem, 2vw, 1.75rem);
 `;
+
+//
+// First Row
+//
 
 const TopRow = styled.div`
 	display: flex;
 	flex-direction: row;
-`
+`;
 
 const TopRowItem = styled.div`
-	margin: 10px;
-	padding: 10px;
+	margin: 5px;
+	margin: ${calcClampPx(2, 10, 320, 1000)};
+
+	padding: 5px;
+	padding: ${calcClampPx(2, 10, 320, 1000)};
 
 	font-family: Splatoon;
-	font-size: 1rem;
-	font-size: clamp(1rem, 2vw, 1.75rem);
+	
+	font-size: 1.25rem;
+	font-size: ${calcClampRem(0.8, 1.75, 320, 1000, 16)};
 
 	border-radius: 0.5rem;
+
+	text-align: center;
 
 	color: #ffffff;
 	background-color: #4c4c4c;
@@ -566,71 +573,106 @@ const TopRowItem = styled.div`
 const TimeDisplay = styled(TopRowItem)`
 `;
 
+//
+// Second Row
+//
+
+const TitleEntryArea = styled.div`
+	margin: 5px 0;
+
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+`;
+
+const TitleTextEntryPair = styled.div`
+	margin: 0 auto;
+	display: flex;
+
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+
+	@media screen and (min-width: 1200px) {
+		flex-direction: row;
+	}
+`;
+
+const TitleTextEntryPairRight = styled(TitleTextEntryPair)`
+	flex-direction: column-reverse;
+
+	@media screen and (min-width: 1200px) {
+		flex-direction: row;
+	}
+`;
+
+const TitleInput = styled.input`
+	width: ${calcClampRem(9, 20, 320, 1000, 16)};
+	height: ${calcClampRem(1.6, 3, 320, 1000, 16)};
+
+	font-family: Splatoon;
+	font-size: 1.25rem;
+	font-size: ${calcClampRem(0.8, 1.75, 320, 1000, 16)};
+
+	margin: 0 ${calcClampPx(5, 10, 400, 1100)};
+`;
+
 const AdjectiveText = styled.div`
-	margin: 0 20px;
+	font-size: ${calcClampRem(0.8, 1.75, 320, 1000, 16)};
 `
 
 const SubjectText = styled(AdjectiveText)`
 `
 
-const TitleInput = styled.input`
-
-	font-family: Splatoon;
-
-	font-size: 1rem;
-	font-size: clamp(1rem, 2vw, 1.75rem);
-
-	margin: 0 10px;
-`;
-
-const TextBox = styled.div`
-	margin: 20px;
-	display: flex;
-	flex-direction: row;
-	justify-content: center;
-	align-items: center;
-`;
+//
+// Third Row
+//
 
 //Describes the area containing all titles
 const Collection = styled.div`
 	position: relative;
-	//min-height: 0;
-	height: 80vh;
+	width: min(95vw, 80rem);
+	height: 35rem;
+	height: ${calcClampRem(20, 50, 600, 1200, 16, "vh")};
 
 	display: grid;
 	grid-template-columns: 1fr max-content 1fr;
 
-	margin: 20px 0;
+	margin: 10px 0;
 	border-radius: 1rem;
 
 	font-size: 1rem;
-	font-size: clamp(1rem, 2vw, 2rem);
+	font-size: ${calcClampRem(0.6, 2, 320, 1100, 16)};
 
 	background-color: #4c4c4c;
 
 	overflow: hidden;
 `;
 
+const TitlePadding = styled.div`
+	position: relative;
+	height: 100%;
+	padding-left: ${calcClampPx(5, 50, 500, 1200)};
+`;
+
+const TitlePaddingRight = styled(TitlePadding)`
+	padding-left: 0;
+	padding-right: ${calcClampPx(5, 50, 500, 1200)};
+`;
+
 const TitleColumn = styled.div`
 	position: relative;
-	//width: 20em;
 	height: 100%;
-	///height: 10em;
-	padding-left: 50px;
-	//overflow: auto;
-
 	display: flex;
 	align-items: center;
 `;
 
 const TitleColumnRight = styled(TitleColumn)`
-	padding-left: 0;
-	padding-right: 50px;
-`
+	
+`;
 
 const TitleEntries = styled.div<{ $transitionTime: number}>`
 	position: relative;
-	padding: 0 20px 0 100px;
+	padding-right: ${calcClampPx(1, 20, 500, 1200)};
 	
 	display: flex;
 	flex-direction: column;
@@ -643,7 +685,8 @@ const TitleEntries = styled.div<{ $transitionTime: number}>`
 `;
 
 const TitleEntriesRight = styled(TitleEntries)`
-	padding: 0 100px 0 20px;
+	padding-right: 0;
+	padding-left: ${calcClampPx(1, 20, 500, 1200)};
 	align-items: flex-start;
 	height: 2em;
 `
@@ -651,14 +694,15 @@ const TitleEntriesRight = styled(TitleEntries)`
 const TitleEntryBackground = styled.div`
 	position: absolute;
 	height: 2em;
-	width: calc(100% - 50px);
+	width: 100%;
 	background-color: #282828;
 `
 
 const CenterBar = styled.div`
 	position: relative;
 	height: 100%;
-	width: 20px;
+	width: 15px;
+	width: ${calcClampPx(10, 20, 400, 1100)};
 
 	display: flex;
 	align-items: center;
@@ -674,8 +718,21 @@ const CenterBarReel = styled.div`
 
 const TitleEntry = styled.div<{ $selected: boolean}>`
 	cursor: pointer;
+	height: 2em;
 
 	color: ${props => props.$selected ? '#ffffff' : '#afb1b0'};
 
 	transition: color 0.1s linear;
+`;
+
+//
+// Credits
+//
+const Credits = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+
+	font-size: ${calcClampRem(1.2, 2, 320, 1100, 16)};
 `;

@@ -1,8 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Data from './titles.json'
 import styled from 'styled-components';
-import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem } from './helpers';
+import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem, titleMatch } from './helpers';
 import { GithubLogo } from '@phosphor-icons/react'
+import { useLongPress } from 'use-long-press';
+import { TitleList } from './TitleList';
+import { NamedTitle, CurrentSelection, FREE_CHARACTERS, DoHintProps, DoRevealProps } from './types';
 
 type EasterEggGradient = {
 	title: string;
@@ -19,34 +22,16 @@ const EASTER_EGGS: EasterEggGradient[] = [
 	{title: "Trapinch Certified", gradient: ['#f29e77', '#f29e77', '#f29e77', '#f29e77', '#e8ecf2', '#f29e77']},
 	{title: "Cheese", gradient: ['#006efd'], useVideo: true}];
 
-const FREE_CHARACTERS = [" ", "-", "\u2013", "'"];
-
-interface NamedTitle {
-	title: string;
-	found: boolean;
-	hinted: boolean;
-	lastHintedIndex: number;
-	revealed: boolean;
-}
-
-interface CurrentSelection {
-	index: number;
-	transitionTime: number;
-}
-
 //TODO:
 // - Make Start Screen and Results Screen
 // - Look into focus-based arrow keys
 // - Make proper credits section!
-// - Mobile friendly / final layout design
+// - Long Touch Press Control
 
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
 
 function App() {
-
-	console.log(calcClampRem(0.6, 2, 320, 1000, 16));
-
 	const [ adjectives, setAdjectives ] = useState<NamedTitle[]>(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 	const [ subjects, setSubjects ] = useState<NamedTitle[]>(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 	const [ adjectiveInput, setAdjectiveInput] = useState("");
@@ -61,6 +46,22 @@ function App() {
 	
 	const [ numHints, setNumHints ] = useState(0);
 	const [ numReveals, setNumReveals ] = useState(0);
+
+	/*
+	const onLongPress = useCallback((event, meta) => {
+		console.log('LONG PRESS');
+		console.log(event);
+		console.log(meta);
+	}, []);
+
+	const doLongPress = useLongPress(onLongPress, {
+		onCancel: (event, meta) => { 
+			console.log('CANCEL PRESS');
+			console.log(event); 
+			console.log(meta); },
+		filterEvents: (event) => true,
+		cancelOutsideElement: true
+	})*/
 
 	const [ gaveUp, setGaveUp ] = useState(false);
 	const [ gameFinished, setGameFinished ] = useState(false);
@@ -98,16 +99,8 @@ function App() {
 		return adjectives.filter((item) => item.found).length;
 	}, [adjectives])
 
-	const hasStartedAdjectives = useMemo(() => {
-		return adjectives.some((item) => { return item.found || item.hinted});
-	}, [adjectives]);
-
 	const numSubjects = useMemo(() => {
 		return subjects.filter((item) => item.found).length;
-	}, [subjects]);
-
-	const hasStartedSubjects = useMemo(() => {
-		return subjects.some((item) => { return item.found || item.hinted});
 	}, [subjects]);
 
 	useEffect(() => {
@@ -147,27 +140,6 @@ function App() {
 
 		setValues(newValues);
 		setCurrentItem({ index: titleIndex, transitionTime: transitionTime ? transitionTime : 2});
-	}
-
-	const onClickTitle = (
-		isCtrl: boolean, 
-		isShift: boolean, 
-		title: NamedTitle, 
-		index: number, 
-		values: NamedTitle[],
-		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
-		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
-
-		if(isCtrl) {
-			doReveal(title, index, values, setValues, setCurrentItem);
-			return;
-		}
-
-		if(isShift) {
-			return;
-		}
-
-		doHint(title, index, values, setValues, setCurrentItem);
 	}
 
 	const onPressHint = () => {
@@ -214,12 +186,7 @@ function App() {
 		return { title, index };
 	}
 
-	const doHint = (
-		hintedTitle: NamedTitle,
-		titleIndex: number,
-		values: NamedTitle[], 
-		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
-		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
+	const doHint: DoHintProps = (hintedTitle, titleIndex, values, setValues, setCurrentItem) => {
 
 		if(hintedTitle.found) return;
 
@@ -268,13 +235,7 @@ function App() {
 		setTitleValue(hintedTitle, titleIndex, values, setValues, setCurrentItem);
 	}
 
-	const doReveal = (
-		hintedTitle: NamedTitle,
-		titleIndex: number,
-		values: NamedTitle[], 
-		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
-		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
-
+	const doReveal: DoRevealProps = (hintedTitle, titleIndex, values, setValues, setCurrentItem) => {
 		if(hintedTitle.found) return;
 
 		hintedTitle.found = true;
@@ -300,42 +261,6 @@ function App() {
 		setSubjects(subjects.map((item) => { return {...item, found: true}}));
 
 		setGaveUp(true);
-	}
-
-	const titleNormalize = (title: string) => {
-		title = title.toLowerCase();
-		title = title.replace("\u2013", "-");
-		title = title.replace("\u03c9", "w");
-
-		return title;
-	}
-
-	const titleMatch = (a: string, b: string) => {
-		const titleA = titleNormalize(a);
-		const titleB = titleNormalize(b);
-
-		return titleA === titleB;
-	}
-
-	const translateNumItems = (numItems: number, currentValue: CurrentSelection, values: NamedTitle[], setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
-		setCurrentItem({ index: Math.max(Math.min(currentValue.index + numItems, values.length - 1), 0), transitionTime: 0.1 });
-	};
-
-	const updateKey = (key: string, currentValue: CurrentSelection, values: NamedTitle[], setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
-		switch(key) {
-			case "ArrowUp":
-				translateNumItems(-1, currentValue, values, setCurrentItem);
-				break;
-			case "ArrowRight":
-				translateNumItems(10, currentValue, values, setCurrentItem);
-				break;
-			case "ArrowDown":
-				translateNumItems(1, currentValue, values, setCurrentItem);
-				break;
-			case "ArrowLeft":
-				translateNumItems(-10, currentValue, values, setCurrentItem);
-				break;
-		}
 	}
 
 	const checkInput = (
@@ -371,51 +296,6 @@ function App() {
 		setTitleValue({ ...match, found: true }, matchIndex, values, setValues, setCurrentItem);
 	}
 
-	const renderTitle = (
-		item: NamedTitle, 
-		index: number, 
-		values: NamedTitle[], 
-		currentValue: CurrentSelection,
-		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
-		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
-		const getDisplayTitle = (item: NamedTitle) => {
-			if(item.found) return item.title;
-	
-			if(item.hinted) {
-	
-				let hintedTitle = "";
-	
-				for(let i = 0; i < item.title.length; i++) {
-					if(i <= item.lastHintedIndex) {
-						hintedTitle += item.title[i];
-					}
-					else {
-						if(FREE_CHARACTERS.includes(item.title[i])) {
-							hintedTitle += item.title[i];
-						}
-						else {
-							hintedTitle += "_";
-						}
-					}
-				}
-	
-				return hintedTitle;
-			}
-			else {
-				return "???";
-			}
-		}
-
-		return (
-			<TitleEntry
-			$selected={index === currentValue.index}
-			key={index} 
-			onClick={(event) => { onClickTitle(event.ctrlKey, event.shiftKey, item, index, values, setValues, setCurrentItem); }}>
-				{getDisplayTitle(item)}
-			</TitleEntry>
-		)
-	};
-
   return (
 	<>
 		<BackBackground $gradient={currentGradient}>
@@ -445,46 +325,27 @@ function App() {
 				</TitleTextEntryPairRight>
 			</TitleEntryArea>
 			<Collection>
-				<TitlePadding 
-					tabIndex={0}
-					onKeyDown={(event) => { if(numAdjectives <= 0) return; updateKey(event.key, currentAdjective, adjectives, setCurrentAdjective) }} 
-					onWheel={(event) => { if(numAdjectives <= 0) return; translateNumItems(event.deltaY > 0 ? 1 : -1, currentAdjective, adjectives, setCurrentAdjective)}}>
-					<TitleColumn>
-						<TitleEntryBackground />
-						<TitleEntries style={{ top: `${-currentAdjective.index * 2}em`}} $transitionTime={currentAdjective.transitionTime}>
-							{
-								!hasStartedAdjectives && (
-									<div>Enter your first adjective above!</div>
-								)
-							}
-							{
-								hasStartedAdjectives && adjectives.map((item, index, array) => { return renderTitle(item, index, array, currentAdjective, setAdjectives, setCurrentAdjective); })
-							}
-						</TitleEntries>
-					</TitleColumn>
-				</TitlePadding>
+				<TitleList 
+					titles={adjectives} 
+					setTitles={setAdjectives}
+					currentSelection={currentAdjective}
+					setCurrentSelection={setCurrentAdjective}
+					doHint={doHint}
+					doReveal={doReveal}
+					noTitlesMessage='Enter your first adjective above!'
+					isLeftSide={true}/>
 				<CenterBar>
 					<CenterBarReel />
 				</CenterBar>
-				<TitlePaddingRight 
-					tabIndex={0}
-					onKeyDown={(event) => { if(numSubjects <= 0) return; updateKey(event.key, currentSubject, subjects, setCurrentSubject) }} 
-					onWheel={(event) => { if(numSubjects <= 0) return; translateNumItems(event.deltaY > 0 ? 1 : -1, currentSubject, subjects, setCurrentSubject)}}>
-
-					<TitleColumnRight>
-						<TitleEntryBackground />
-						<TitleEntriesRight style={{ top: `${-currentSubject.index * 2}em`}} $transitionTime={currentSubject.transitionTime}>
-						{
-							!hasStartedSubjects && (
-								<div>Enter your first subject above!</div>
-							)
-						}
-						{
-							hasStartedSubjects && subjects.map((item, index, array) => { return renderTitle(item, index, array, currentSubject, setSubjects, setCurrentSubject); })
-						}
-						</TitleEntriesRight>
-					</TitleColumnRight>
-				</TitlePaddingRight>
+				<TitleList 
+					titles={subjects} 
+					setTitles={setSubjects}
+					currentSelection={currentSubject}
+					setCurrentSelection={setCurrentSubject}
+					doHint={doHint}
+					doReveal={doReveal}
+					noTitlesMessage='Enter your first subject above!'
+					isLeftSide={false}/>
 			</Collection>
 			<Credits>
 				<div>Click or press a title for a hint.</div>
@@ -627,7 +488,6 @@ const SubjectText = styled(AdjectiveText)`
 // Third Row
 //
 
-//Describes the area containing all titles
 const Collection = styled.div`
 	position: relative;
 	width: min(95vw, 80rem);
@@ -648,56 +508,6 @@ const Collection = styled.div`
 	overflow: hidden;
 `;
 
-const TitlePadding = styled.div`
-	position: relative;
-	height: 100%;
-	padding-left: ${calcClampPx(5, 50, 500, 1200)};
-`;
-
-const TitlePaddingRight = styled(TitlePadding)`
-	padding-left: 0;
-	padding-right: ${calcClampPx(5, 50, 500, 1200)};
-`;
-
-const TitleColumn = styled.div`
-	position: relative;
-	height: 100%;
-	display: flex;
-	align-items: center;
-`;
-
-const TitleColumnRight = styled(TitleColumn)`
-	
-`;
-
-const TitleEntries = styled.div<{ $transitionTime: number}>`
-	position: relative;
-	padding-right: ${calcClampPx(1, 20, 500, 1200)};
-	
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-
-	height: 2em;
-	width: 100%;
-
-	transition: top ${props => props.$transitionTime}s cubic-bezier(0.87, 0, 0.13, 1);
-`;
-
-const TitleEntriesRight = styled(TitleEntries)`
-	padding-right: 0;
-	padding-left: ${calcClampPx(1, 20, 500, 1200)};
-	align-items: flex-start;
-	height: 2em;
-`
-
-const TitleEntryBackground = styled.div`
-	position: absolute;
-	height: 2em;
-	width: 100%;
-	background-color: #282828;
-`
-
 const CenterBar = styled.div`
 	position: relative;
 	height: 100%;
@@ -715,15 +525,6 @@ const CenterBarReel = styled.div`
 	width: 100%;
 	background-color: #282828;
 `
-
-const TitleEntry = styled.div<{ $selected: boolean}>`
-	cursor: pointer;
-	height: 2em;
-
-	color: ${props => props.$selected ? '#ffffff' : '#afb1b0'};
-
-	transition: color 0.1s linear;
-`;
 
 //
 // Credits

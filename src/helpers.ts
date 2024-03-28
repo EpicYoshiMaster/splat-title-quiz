@@ -1,3 +1,6 @@
+/**
+ * Sorts titles a and b, returns -1 if a is earlier, 1 if a is later, and 0 if they are the same.
+ */
 export const sortNoCase = (a: string, b: string) => {
 	const nameA = a.toLowerCase();
 	const nameB = b.toLowerCase();
@@ -14,8 +17,31 @@ export const sortNoCase = (a: string, b: string) => {
 	return 0;
 }
 
+/**
+ * Normalizes a title to compare it
+ */
+export const titleNormalize = (title: string) => {
+    title = title.toLowerCase();
+    title = title.replace("\u2013", "-");
+    title = title.replace("\u03c9", "w");
+
+    return title;
+}
+
+/**
+ * Determines if two titles "match"
+ */
+export const titleMatch = (a: string, b: string) => {
+    const titleA = titleNormalize(a);
+    const titleB = titleNormalize(b);
+
+    return titleA === titleB;
+}
+
+/**
+ * Formats a time in seconds to HH:MM:SS
+ */
 export const formatTime = (time: number) => {
-    //HH:MM:SS
     time = Math.floor(time / 1000);
     const hours = Math.floor(time / 3600);
     time %= 3600;

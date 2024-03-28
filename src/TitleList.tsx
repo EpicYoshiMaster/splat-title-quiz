@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, memo, useCallback } from 'react'
 import styled from 'styled-components';
-import { calcClampPx} from './helpers';
-import { NamedTitle, CurrentSelection, FREE_CHARACTERS, DoHintProps, DoRevealProps } from './types';
+import { calcClampPx, getSurroundingTitles} from './helpers';
+import { NamedTitle, CurrentSelection, DoHintProps, DoRevealProps, HintTitleProps, RevealTitleProps } from './types';
+import { Title } from './Title';
 
 interface TitleListProps {
     titles: NamedTitle[];
@@ -14,14 +15,15 @@ interface TitleListProps {
     isLeftSide: boolean;
 }
 
-export const TitleList: React.FC<TitleListProps> = ({titles, setTitles, currentSelection, setCurrentSelection, doHint, doReveal, noTitlesMessage, isLeftSide}) => {
+export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titles, setTitles, currentSelection, setCurrentSelection, doHint, doReveal, noTitlesMessage, isLeftSide}) {
+
     const hasStartedTitles = useMemo(() => {
 		return titles.some((item) => { return item.found || item.hinted});
 	}, [titles]);
 
-    const translateNumItems = (numItems: number) => {
+    const translateNumItems = useCallback((numItems: number) => {
 		setCurrentSelection({ index: Math.max(Math.min(currentSelection.index + numItems, titles.length - 1), 0), transitionTime: 0.1 });
-	};
+	}, [currentSelection, setCurrentSelection, titles.length]);
 
     const updateKey = (key: string) => {
 		switch(key) {
@@ -40,65 +42,13 @@ export const TitleList: React.FC<TitleListProps> = ({titles, setTitles, currentS
 		}
 	}
 
-    const onClickTitle = (
-		isCtrl: boolean, 
-		isShift: boolean, 
-		title: NamedTitle, 
-		index: number) => {
+    const hintTitle: HintTitleProps = useCallback((title, index, prevFoundTitle, nextFoundTitle) => {
+        doHint(title, index, prevFoundTitle, nextFoundTitle, isLeftSide);
+    }, [doHint, isLeftSide]);
 
-		if(isCtrl) {
-			doReveal(title, index, titles, setTitles, setCurrentSelection);
-			return;
-		}
-
-		if(isShift) {
-			return;
-		}
-
-		doHint(title, index, titles, setTitles, setCurrentSelection);
-	}
-
-    const renderTitle = (
-		item: NamedTitle, 
-		index: number) => {
-
-		const getDisplayTitle = (item: NamedTitle) => {
-			if(item.found) return item.title;
-	
-			if(item.hinted) {
-				let hintedTitle = "";
-	
-				for(let i = 0; i < item.title.length; i++) {
-					if(i <= item.lastHintedIndex) {
-						hintedTitle += item.title[i];
-					}
-					else {
-						if(FREE_CHARACTERS.includes(item.title[i])) {
-							hintedTitle += item.title[i];
-						}
-						else {
-							hintedTitle += "_";
-						}
-					}
-				}
-	
-				return hintedTitle;
-			}
-			else {
-				return "???";
-			}
-		}
-
-		return (
-			<TitleEntry
-			$selected={index === currentSelection.index}
-			key={index}
-			//{...doLongPress()}
-			onClick={(event) => { onClickTitle(event.ctrlKey, event.shiftKey, item, index); }}>
-				{getDisplayTitle(item)}
-			</TitleEntry>
-		)
-	};
+    const revealTitle: RevealTitleProps = useCallback((title, index) => {
+        doReveal(title, index, isLeftSide);
+    }, [doReveal, isLeftSide]);
 
     return (
         <TitlePadding 
@@ -115,13 +65,28 @@ export const TitleList: React.FC<TitleListProps> = ({titles, setTitles, currentS
 						)
 					}
 					{
-						hasStartedTitles && titles.map((item, index, array) => { return renderTitle(item, index); })
+						hasStartedTitles && titles.map((item, index, array) => {
+
+							const { prev, next } = getSurroundingTitles(item, index, array);
+
+                            return <Title 
+                                key={index}
+                                title={item} 
+                                index={index}
+                                selected={currentSelection.index === index}
+                                setCurrentSelection={setCurrentSelection}
+                                hintTitle={hintTitle}
+                                revealTitle={revealTitle}
+								previousFoundTitle={prev}
+								nextFoundTitle={next}
+                                />;
+                        })
 					}
 				</TitleEntries>
 			</TitleColumn>
 		</TitlePadding>
     )
-};
+});
 
 
 const TitlePadding = styled.div<{ $isLeft: boolean }>`
@@ -136,14 +101,14 @@ const TitleColumn = styled.div`
 	display: flex;
 	align-items: center;
 
-	overflow: auto;
+	overflow: hidden;
 `;
 
 const TitleEntries = styled.div<{ $isLeft: boolean, $transitionTime: number}>`
 	position: relative;
 	display: flex;
 	flex-direction: column;
-    ${({$isLeft}) => $isLeft ?  `padding-left:` : `padding-right:`} ${calcClampPx(1, 20, 500, 1200)};
+    ${({$isLeft}) => $isLeft ?  `padding-right:` : `padding-left:`} ${calcClampPx(1, 20, 500, 1200)};
 	align-items: ${({$isLeft}) => $isLeft ?  `flex-end` : `flex-start`};
 
 	height: 2em;
@@ -157,13 +122,4 @@ const TitleEntryBackground = styled.div`
 	height: 2em;
 	width: 100%;
 	background-color: #282828;
-`;
-
-const TitleEntry = styled.div<{ $selected: boolean}>`
-	cursor: pointer;
-	height: 2em;
-
-	color: ${props => props.$selected ? '#ffffff' : '#afb1b0'};
-
-	transition: color 0.1s linear;
 `;

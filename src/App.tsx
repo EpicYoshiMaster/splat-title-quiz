@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Data from './titles.json'
 import styled from 'styled-components';
-import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem, titleMatch } from './helpers';
+import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem, titleMatch, getSurroundingTitles } from './helpers';
 import { GithubLogo } from '@phosphor-icons/react'
-import { useLongPress } from 'use-long-press';
 import { TitleList } from './TitleList';
 import { NamedTitle, CurrentSelection, FREE_CHARACTERS, DoHintProps, DoRevealProps } from './types';
 
@@ -26,7 +25,6 @@ const EASTER_EGGS: EasterEggGradient[] = [
 // - Make Start Screen and Results Screen
 // - Look into focus-based arrow keys
 // - Make proper credits section!
-// - Long Touch Press Control
 
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
@@ -46,22 +44,6 @@ function App() {
 	
 	const [ numHints, setNumHints ] = useState(0);
 	const [ numReveals, setNumReveals ] = useState(0);
-
-	/*
-	const onLongPress = useCallback((event, meta) => {
-		console.log('LONG PRESS');
-		console.log(event);
-		console.log(meta);
-	}, []);
-
-	const doLongPress = useLongPress(onLongPress, {
-		onCancel: (event, meta) => { 
-			console.log('CANCEL PRESS');
-			console.log(event); 
-			console.log(meta); },
-		filterEvents: (event) => true,
-		cancelOutsideElement: true
-	})*/
 
 	const [ gaveUp, setGaveUp ] = useState(false);
 	const [ gameFinished, setGameFinished ] = useState(false);
@@ -131,14 +113,13 @@ function App() {
 	const setTitleValue = (
 		newValue: NamedTitle,
 		titleIndex: number,
-		values: NamedTitle[],
 		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
 		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>,
 		transitionTime?: number
 	) => {
-		const newValues = values.map((item, index) => { return (titleIndex === index) ? newValue : item; });
-
-		setValues(newValues);
+		setValues((values) => {
+			return values.map((item, index) => { return (titleIndex === index) ? newValue : item; });
+		});
 		setCurrentItem({ index: titleIndex, transitionTime: transitionTime ? transitionTime : 2});
 	}
 
@@ -146,13 +127,15 @@ function App() {
 		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
 
 		if(randomAdjective) {
-			doHint(randomAdjective.title, randomAdjective.index, adjectives, setAdjectives, setCurrentAdjective);
+			const { prev, next } = getSurroundingTitles(randomAdjective.title, randomAdjective.index, adjectives);
+			doHint(randomAdjective.title, randomAdjective.index, prev, next, true);
 		}
 
 		const randomSubject = getRandomTitle((item) => !item.found, subjects);
 
 		if(randomSubject) {
-			doHint(randomSubject.title, randomSubject.index, subjects, setSubjects, setCurrentSubject);
+			const { prev, next } = getSurroundingTitles(randomSubject.title, randomSubject.index, adjectives);
+			doHint(randomSubject.title, randomSubject.index, prev, next, false);
 		}
 	}
 
@@ -160,13 +143,13 @@ function App() {
 		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
 
 		if(randomAdjective) {
-			doReveal(randomAdjective.title, randomAdjective.index, adjectives, setAdjectives, setCurrentAdjective);
+			doReveal(randomAdjective.title, randomAdjective.index, true);
 		}
 
 		const randomSubject = getRandomTitle((item) => !item.found, subjects);
 
 		if(randomSubject) {
-			doReveal(randomSubject.title, randomSubject.index, subjects, setSubjects, setCurrentSubject);
+			doReveal(randomSubject.title, randomSubject.index, false);
 		}
 	}
 
@@ -186,13 +169,24 @@ function App() {
 		return { title, index };
 	}
 
-	const doHint: DoHintProps = (hintedTitle, titleIndex, values, setValues, setCurrentItem) => {
+	const getTitleListSide = useCallback((isLeftSide: boolean) => {
+		if(isLeftSide) {
+			return { setTitles: setAdjectives, setCurrentSelection: setCurrentAdjective };
+		}
+		else {
+			return { setTitles: setSubjects, setCurrentSelection: setCurrentSubject };
+		}
+	}, [setAdjectives, setCurrentAdjective, setSubjects, setCurrentSubject]);
+
+	const doHint: DoHintProps = useCallback((hintedTitle, titleIndex, previousFoundTitle, nextFoundTitle, isLeftSide) => {
+
+		const { setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
 
 		if(hintedTitle.found) return;
 
-		//get previous and next found titles if the exist
-		const previousFoundTitle = values.slice(0, titleIndex).reverse().find((item: NamedTitle) => item.found);
-		const nextFoundTitle = values.slice(titleIndex + 1).find((item: NamedTitle) => item.found);
+		//get previous and next found titles if they exist
+		//const previousFoundTitle = titles.slice(0, titleIndex).reverse().find((item: NamedTitle) => item.found);
+		//const nextFoundTitle = titles.slice(titleIndex + 1).find((item: NamedTitle) => item.found);
 
 		hintedTitle.hinted = true;
 
@@ -231,18 +225,21 @@ function App() {
 			hintedTitle.found = true;
 		}
 
-		setNumHints(numHints + 1);
-		setTitleValue(hintedTitle, titleIndex, values, setValues, setCurrentItem);
-	}
+		setNumHints(numHints => numHints + 1);
+		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection);
+	}, [getTitleListSide]);
 
-	const doReveal: DoRevealProps = (hintedTitle, titleIndex, values, setValues, setCurrentItem) => {
+	const doReveal: DoRevealProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
+		const { setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
+
 		if(hintedTitle.found) return;
 
 		hintedTitle.found = true;
+		hintedTitle.revealed = true;
 
-		setNumReveals(numReveals + 1);
-		setTitleValue(hintedTitle, titleIndex, values, setValues, setCurrentItem);
-	}
+		setNumReveals(numReveals => numReveals + 1);
+		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection);
+	}, [getTitleListSide]);
 
 	const onPressReset = () => {
 		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
@@ -293,7 +290,7 @@ function App() {
 
 		setTextInput("");
 		setIsRunning(true);
-		setTitleValue({ ...match, found: true }, matchIndex, values, setValues, setCurrentItem);
+		setTitleValue({ ...match, found: true }, matchIndex, setValues, setCurrentItem);
 	}
 
   return (
@@ -348,8 +345,8 @@ function App() {
 					isLeftSide={false}/>
 			</Collection>
 			<Credits>
-				<div>Click or press a title for a hint.</div>
-				<div>Ctrl + Click or long press a title to reveal it.</div>
+				<div>Click or Press a title for a hint.</div>
+				<div>Click or Press and Hold a title to reveal it.</div>
 				<div>Created by EpicYoshiMaster!</div>
 				<div><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></div>
 			</Credits>
@@ -378,7 +375,7 @@ const SecretVideo = styled.video<{$active?: boolean}>`
 	object-fit: fill;
 
 	opacity: ${props => props.$active ? 1 : 0};
-	transition: opacity 1s linear;
+	transition: opacity 0.1s linear;
 `;
 
 const Background = styled.div`

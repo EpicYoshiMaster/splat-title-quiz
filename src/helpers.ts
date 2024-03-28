@@ -1,3 +1,5 @@
+import { NamedTitle } from "./types";
+
 /**
  * Sorts titles a and b, returns -1 if a is earlier, 1 if a is later, and 0 if they are the same.
  */
@@ -37,6 +39,16 @@ export const titleMatch = (a: string, b: string) => {
 
     return titleA === titleB;
 }
+
+/**
+ * Finds the prior and next found titles from this one, if they exist
+ */
+export const getSurroundingTitles = (title: NamedTitle, index: number, titles: NamedTitle[]) => {
+	const prev = titles.slice(0, index).reverse().find((item: NamedTitle) => item.found);
+	const next = titles.slice(index + 1).find((item: NamedTitle) => item.found);
+
+	return { prev, next };
+};
 
 /**
  * Formats a time in seconds to HH:MM:SS

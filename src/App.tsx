@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Data from './titles.json'
 import styled from 'styled-components';
-import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem, titleMatch, getSurroundingTitles } from './helpers';
+import { sortNoCase, formatTime, calcClampPx, calcClampRem, titleMatch, getSurroundingTitles, getRandomTitle } from './helpers';
 import { GithubLogo } from '@phosphor-icons/react'
 import { TitleList } from './TitleList';
 import { RowItem } from './Layout';
@@ -75,6 +75,10 @@ function App() {
 		return gradient;
 	}, [easterEggState]);
 
+	//
+	// Timer
+	//
+
 	const updateTime = () => {
 		setTimer(prevState => (
 			{
@@ -83,6 +87,30 @@ function App() {
 		}));
 	}
 
+	
+	useEffect(() => {
+		if(isRunning && !interval.current) {
+			setTimer(prevState => ({ ...prevState, startTime: Date.now()}));
+			interval.current = window.setInterval(updateTime, 100);
+		}
+		else if(!isRunning && interval.current) {
+			clearInterval(interval.current);
+			interval.current = null;
+		}
+
+		return () => {
+			if(!interval.current) return;
+
+			clearInterval(interval.current);
+			interval.current = null;
+		}
+
+	}, [isRunning]);
+
+	//
+	// Results Data
+	//
+
 	const numAdjectives = useMemo(() => {
 		return adjectives.filter((item) => item.found).length;
 	}, [adjectives])
@@ -90,7 +118,7 @@ function App() {
 	const numSubjects = useMemo(() => {
 		return subjects.filter((item) => item.found).length;
 	}, [subjects]);
-
+	
 	const resultsLeftSide = useMemo(() => {
 		let results: string[] = [];
 
@@ -120,33 +148,19 @@ function App() {
 	}, []);
 
 	useEffect(() => {
-		if(isRunning && !interval.current) {
-			setTimer(prevState => ({ ...prevState, startTime: Date.now()}));
-			interval.current = window.setInterval(updateTime, 100);
-		}
-		else if(!isRunning && interval.current) {
-			clearInterval(interval.current);
-			interval.current = null;
-		}
-
-		return () => {
-			if(!interval.current) return;
-
-			clearInterval(interval.current);
-			interval.current = null;
-		}
-
-	}, [isRunning]);
-
-	useEffect(() => {
 		if(!gameFinished && numAdjectives >= adjectiveList.length && numSubjects >= subjectList.length) {
 			setGameFinished(true);
 			setShowResults(true);
+			setIsRunning(false);
 
-			setCurrentAdjective({ index: resultsLeftSide.length - 1, transitionTime: 2});
-			setCurrentSubject({ index: resultsRightSide.length - 1, transitionTime: 2});
+			setCurrentAdjective({ index: 0, transitionTime: 2});
+			setCurrentSubject({ index: 0, transitionTime: 2});
 		}
 	}, [numAdjectives, numSubjects, gameFinished, resultsLeftSide.length, resultsRightSide.length]);
+
+	//
+	// Game Functionality
+	//
 
 	const setTitleValue = (
 		newValue: NamedTitle,
@@ -155,54 +169,11 @@ function App() {
 		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>,
 		transitionTime?: number
 	) => {
+		setIsRunning(true);
 		setValues((values) => {
 			return values.map((item, index) => { return (titleIndex === index) ? newValue : item; });
 		});
 		setCurrentItem({ index: titleIndex, transitionTime: transitionTime ? transitionTime : 2});
-	}
-
-	const onPressHint = () => {
-		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
-
-		if(randomAdjective) {
-			doHint(randomAdjective.title, randomAdjective.index, true);
-		}
-
-		const randomSubject = getRandomTitle((item) => !item.found, subjects);
-
-		if(randomSubject) {
-			doHint(randomSubject.title, randomSubject.index, false);
-		}
-	}
-
-	const onPressReveal = () => {
-		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
-
-		if(randomAdjective) {
-			doReveal(randomAdjective.title, randomAdjective.index, true);
-		}
-
-		const randomSubject = getRandomTitle((item) => !item.found, subjects);
-
-		if(randomSubject) {
-			doReveal(randomSubject.title, randomSubject.index, false);
-		}
-	}
-
-	//Get a random title which meets a specified predicate
-	const getRandomTitle = (
-		predicate: (value: NamedTitle, index: number, array: NamedTitle[]) => unknown,
-		values: NamedTitle[]
-	) => {
-
-		const unfoundTitles = values.filter(predicate);
-
-		if(unfoundTitles.length <= 0) return undefined;
-	
-		const title = unfoundTitles[randRange(0, unfoundTitles.length - 1)];
-		const index = values.indexOf(title);
-
-		return { title, index };
 	}
 
 	const getTitleListSide = useCallback((isLeftSide: boolean) => {
@@ -215,7 +186,6 @@ function App() {
 	}, [adjectives, setAdjectives, setCurrentAdjective, subjects, setSubjects, setCurrentSubject]);
 
 	const doHint: DoHintProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
-
 		const { titles, setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
 
 		if(hintedTitle.found) return;
@@ -276,6 +246,38 @@ function App() {
 		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection);
 	}, [getTitleListSide]);
 
+	//
+	// Buttons
+	//
+
+	const onPressHint = () => {
+		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
+
+		if(randomAdjective) {
+			doHint(randomAdjective.title, randomAdjective.index, true);
+		}
+
+		const randomSubject = getRandomTitle((item) => !item.found, subjects);
+
+		if(randomSubject) {
+			doHint(randomSubject.title, randomSubject.index, false);
+		}
+	}
+
+	const onPressReveal = () => {
+		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
+
+		if(randomAdjective) {
+			doReveal(randomAdjective.title, randomAdjective.index, true);
+		}
+
+		const randomSubject = getRandomTitle((item) => !item.found, subjects);
+
+		if(randomSubject) {
+			doReveal(randomSubject.title, randomSubject.index, false);
+		}
+	}
+	
 	const onPressReset = () => {
 		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 		setSubjects(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
@@ -308,8 +310,8 @@ function App() {
 		else {
 			setShowResults(true);
 
-			setCurrentAdjective({ index: resultsLeftSide.length - 1, transitionTime: 2});
-			setCurrentSubject({ index: resultsRightSide.length - 1, transitionTime: 2});
+			setCurrentAdjective({ index: 0, transitionTime: 2});
+			setCurrentSubject({ index: 0, transitionTime: 2});
 		}
 	}
 
@@ -318,10 +320,11 @@ function App() {
 		setSubjects(subjects.map((item) => { return {...item, found: true}}));
 
 		setGaveUp(true);
-		setGameFinished(true);
-		setShowResults(true);
-		setIsRunning(false);
 	}
+
+	//
+	// Input
+	//
 
 	const checkInput = (
 		text: string, 
@@ -352,7 +355,6 @@ function App() {
 		const matchIndex = values.indexOf(match);
 
 		setTextInput("");
-		setIsRunning(true);
 		setTitleValue({ ...match, found: true }, matchIndex, setValues, setCurrentItem);
 	}
 

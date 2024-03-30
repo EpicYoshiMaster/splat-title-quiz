@@ -51,6 +51,24 @@ export const getSurroundingTitles = (index: number, titles: NamedTitle[], predic
 };
 
 /**
+ * Finds a random title that meets the specified predicate
+ */
+export const getRandomTitle = (
+	predicate: (value: NamedTitle, index: number, array: NamedTitle[]) => unknown,
+	titles: NamedTitle[]
+) => {
+
+	const randomTitles = titles.filter(predicate);
+
+	if(randomTitles.length <= 0) return undefined;
+
+	const title = randomTitles[randRange(0, randomTitles.length - 1)];
+	const index = titles.indexOf(title);
+
+	return { title, index };
+}
+
+/**
  * Formats a time in seconds to HH:MM:SS
  */
 export const formatTime = (time: number) => {

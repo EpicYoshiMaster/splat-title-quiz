@@ -27,11 +27,18 @@ const EASTER_EGGS: EasterEggGradient[] = [
 	{title: "Trapinch Certified", gradient: ['#f29e77', '#f29e77', '#f29e77', '#f29e77', '#e8ecf2', '#f29e77']},
 	{title: "Cheese", gradient: ['#006efd'], useVideo: true}];
 
+/*
 const LEFT_MESSAGES = ['(Hello and welcome to', 'Friendly-Welcoming', 'Title-Awaiting', 'Well-Wishing', '(Enter any title'];
 const RIGHT_MESSAGES = ['the Splatoon 3 Title Quiz!)', 'Splatoon 3 Title Quizzer', 'Textbox Above User', 'Good Luck Haver', 'above to begin!)'];
 
 const LEFT_DEFAULT_INDEX = 2;
-const RIGHT_DEFAULT_INDEX = 2;
+const RIGHT_DEFAULT_INDEX = 2;*/
+
+const LEFT_MESSAGES = ['Splatlandian', 'Splatling-Using', 'Splatoon 3', "Splatsville's", 'Splendid'];
+const RIGHT_MESSAGES = ['Timeline Jumper', 'Title Holder', 'Title Quiz', 'Tofu', 'Toni Kensa Model'];
+
+const LEFT_DEFAULT_INDEX = 1;
+const RIGHT_DEFAULT_INDEX = 1;
 
 //TODO:
 // - Add site icon / info
@@ -337,6 +344,8 @@ function App() {
 		setGameFinished(false);
 		setShowResults(false);
 		setGaveUp(false);
+		setNumHints(0);
+		setNumReveals(0);
 		setFirstTitle({ adjective: "", subject: ""});
 		setLuckyTitle({ adjective: "", subject: ""});
 		setTimer(prevState => ({ time: 0, startTime: Date.now()}));

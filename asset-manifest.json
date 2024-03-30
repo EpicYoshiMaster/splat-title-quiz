@@ -1,16 +1,19 @@
 {
   "files": {
-    "main.css": "/static/css/main.f337242b.css",
-    "main.js": "/static/js/main.1f9a9973.js",
-    "static/js/453.e3c24b4d.chunk.js": "/static/js/453.e3c24b4d.chunk.js",
-    "static/media/BlitzMain.otf": "/static/media/BlitzMain.88e4b5579411c56568b5.otf",
-    "index.html": "/index.html",
-    "main.f337242b.css.map": "/static/css/main.f337242b.css.map",
-    "main.1f9a9973.js.map": "/static/js/main.1f9a9973.js.map",
-    "453.e3c24b4d.chunk.js.map": "/static/js/453.e3c24b4d.chunk.js.map"
+    "main.css": "/splat-title-quiz/static/css/main.d9747799.css",
+    "main.js": "/splat-title-quiz/static/js/main.b9b07cdd.js",
+    "static/js/453.e3c24b4d.chunk.js": "/splat-title-quiz/static/js/453.e3c24b4d.chunk.js",
+    "static/media/29quintillioncheese.mp4": "/splat-title-quiz/static/media/29quintillioncheese.3bc9321c394fc3430302.mp4",
+    "static/media/BlitzMain.otf": "/splat-title-quiz/static/media/BlitzMain.88e4b5579411c56568b5.otf",
+    "static/media/camo-foreground-black.png": "/splat-title-quiz/static/media/camo-foreground-black.9084b1c48f886d7270fe.png",
+    "static/media/grey-striped-background.png": "/splat-title-quiz/static/media/grey-striped-background.a17e5366c67a270e3aa0.png",
+    "index.html": "/splat-title-quiz/index.html",
+    "main.d9747799.css.map": "/splat-title-quiz/static/css/main.d9747799.css.map",
+    "main.b9b07cdd.js.map": "/splat-title-quiz/static/js/main.b9b07cdd.js.map",
+    "453.e3c24b4d.chunk.js.map": "/splat-title-quiz/static/js/453.e3c24b4d.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.f337242b.css",
-    "static/js/main.1f9a9973.js"
+    "static/css/main.d9747799.css",
+    "static/js/main.b9b07cdd.js"
   ]
 }

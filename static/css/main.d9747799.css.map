@@ -1,0 +1,1 @@
+{"version":3,"file":"static/css/main.d9747799.css","mappings":"AAAA,WACE,oBAAqB,CACrB,0EACF,CAEA,KAEE,oBAAqB,CADrB,QAEF,CAEA,EAAI,qBAAwB","sources":["index.css"],"sourcesContent":["@font-face {\n  font-family: Splatoon;\n  src: url('./fonts/BlitzMain.otf');\n}\n\nbody {\n  margin: 0;\n  font-family: Splatoon;\n}\n\n* { box-sizing: border-box; }"],"names":[],"sourceRoot":""}

@@ -13,6 +13,11 @@ type EasterEggGradient = {
 	useVideo?: boolean;
 }
 
+type TitlePair = {
+	adjective: string;
+	subject: string;
+}
+
 const EASTER_EGGS: EasterEggGradient[] = [
 	{title: "If You Want To Go Back To The Default Gradient Maybe You Should Just Reload Instead", gradient: ['#1B1B1B']},
 	{title: "Trans Rights", gradient: ['#55cdfd', '#f6aab7', '#ffffff', '#f6aab7', '#55cefd']},
@@ -49,6 +54,8 @@ function App() {
 	
 	const [ numHints, setNumHints ] = useState(0);
 	const [ numReveals, setNumReveals ] = useState(0);
+	const [ firstTitle, setFirstTitle] = useState<TitlePair>({ adjective: "", subject: "" });
+	const [ luckyTitle, setLuckyTitle ] = useState<TitlePair>({ adjective: "", subject: "" });
 
 	const [ showResults, setShowResults ] = useState(false);
 	const [ gaveUp, setGaveUp ] = useState(false);
@@ -86,7 +93,6 @@ function App() {
 			startTime: Date.now()
 		}));
 	}
-
 	
 	useEffect(() => {
 		if(isRunning && !interval.current) {
@@ -129,23 +135,47 @@ function App() {
 			results.push(`${formatTime(timeState.time)}`);
 		}
 		
+		results.push(`${numSubjects + numAdjectives}`);
 		results.push(`${numHints}`);
 		results.push(`${numReveals}`);
+
+		if(firstTitle) {
+			results.push(`First`);
+			results.push(`${firstTitle.adjective}`);
+		}
+
+		if(luckyTitle) {
+			results.push(`Lucky`);
+			results.push(`${luckyTitle.adjective}`);
+		}
+
 		results.push(`Thank you`);
 
 		return results;
-	}, [numHints, numReveals, timeState, gaveUp]);
+	}, [numHints, numReveals, timeState, gaveUp, numAdjectives, numSubjects, firstTitle, luckyTitle]);
 
 	const resultsRightSide = useMemo(() => {
 		let results: string[] = [];
 
 		results.push(`Final Time`);
+		results.push(`Titles Found`);
 		results.push(`Hints`);
 		results.push(`Reveals`);
+
+		if(firstTitle) {
+			results.push(`Title`);
+			results.push(`${firstTitle.subject}`);
+		}
+
+		if(luckyTitle) {
+			results.push(`Title`);
+			results.push(`${luckyTitle.subject}`);
+		}
+		
 		results.push(`for playing!`);
 
 		return results;
-	}, []);
+	}, [firstTitle, luckyTitle]);
 
 	useEffect(() => {
 		if(!gameFinished && numAdjectives >= adjectiveList.length && numSubjects >= subjectList.length) {
@@ -153,28 +183,47 @@ function App() {
 			setShowResults(true);
 			setIsRunning(false);
 
+			const randomAdjective = getRandomTitle(() => true, adjectives);
+			const randomSubject = getRandomTitle(() => true, subjects);
+			if(randomAdjective && randomSubject) {
+				setLuckyTitle({ adjective: randomAdjective.title.title, subject: randomSubject.title.title});
+			}
+			else {
+				setLuckyTitle({ adjective: "", subject: ""});
+			}
+
 			setCurrentAdjective({ index: 0, transitionTime: 2});
 			setCurrentSubject({ index: 0, transitionTime: 2});
 		}
-	}, [numAdjectives, numSubjects, gameFinished, resultsLeftSide.length, resultsRightSide.length]);
+	}, [numAdjectives, numSubjects, gameFinished, resultsLeftSide.length, resultsRightSide.length, currentAdjective, currentSubject, adjectives, subjects]);
 
 	//
 	// Game Functionality
 	//
 
-	const setTitleValue = (
+	const setTitleValue = useCallback((
 		newValue: NamedTitle,
 		titleIndex: number,
 		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
 		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>,
-		transitionTime?: number
+		isLeftSide: boolean
 	) => {
+
+		if(newValue.found) {
+			if(isLeftSide && !firstTitle.adjective) {
+				setFirstTitle(firstTitle => { return { ...firstTitle, adjective: newValue.title}});
+			}
+			else if(!isLeftSide && !firstTitle.subject) {
+				setFirstTitle(firstTitle => { return { ...firstTitle, subject: newValue.title}});
+			}
+		}
+
 		setIsRunning(true);
 		setValues((values) => {
 			return values.map((item, index) => { return (titleIndex === index) ? newValue : item; });
 		});
-		setCurrentItem({ index: titleIndex, transitionTime: transitionTime ? transitionTime : 2});
-	}
+		setCurrentItem({ index: titleIndex, transitionTime: 2});
+	}, [firstTitle]);
 
 	const getTitleListSide = useCallback((isLeftSide: boolean) => {
 		if(isLeftSide) {
@@ -231,8 +280,8 @@ function App() {
 		}
 
 		setNumHints(numHints => numHints + 1);
-		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection);
-	}, [getTitleListSide]);
+		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection, isLeftSide);
+	}, [getTitleListSide, setTitleValue]);
 
 	const doReveal: DoRevealProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
 		const { setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
@@ -243,8 +292,8 @@ function App() {
 		hintedTitle.revealed = true;
 
 		setNumReveals(numReveals => numReveals + 1);
-		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection);
-	}, [getTitleListSide]);
+		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection, isLeftSide);
+	}, [getTitleListSide, setTitleValue]);
 
 	//
 	// Buttons
@@ -288,6 +337,8 @@ function App() {
 		setGameFinished(false);
 		setShowResults(false);
 		setGaveUp(false);
+		setFirstTitle({ adjective: "", subject: ""});
+		setLuckyTitle({ adjective: "", subject: ""});
 		setTimer(prevState => ({ time: 0, startTime: Date.now()}));
 	}
 	
@@ -328,11 +379,10 @@ function App() {
 
 	const checkInput = (
 		text: string, 
-		values: NamedTitle[], 
-		currentValue: CurrentSelection,
 		setTextInput: React.Dispatch<React.SetStateAction<string>>, 
-		setValues: React.Dispatch<React.SetStateAction<NamedTitle[]>>,
-		setCurrentItem: React.Dispatch<React.SetStateAction<CurrentSelection>>) => {
+		isLeftSide: boolean) => {
+
+		const {titles, setTitles, setCurrentSelection} = getTitleListSide(isLeftSide);
 			
 		setTextInput(text);
 
@@ -348,14 +398,14 @@ function App() {
 			return;
 		}
 
-		const match = values.find((item) => { return titleMatch(item.title, text) });
+		const match = titles.find((item) => { return titleMatch(item.title, text) });
 
 		if(!match || match.found) return;
 
-		const matchIndex = values.indexOf(match);
+		const matchIndex = titles.indexOf(match);
 
 		setTextInput("");
-		setTitleValue({ ...match, found: true }, matchIndex, setValues, setCurrentItem);
+		setTitleValue({ ...match, found: true }, matchIndex, setTitles, setCurrentSelection, isLeftSide);
 	}
 
   return (
@@ -377,10 +427,10 @@ function App() {
 			<TitleEntryArea>
 				<TitleTextEntryPair>
 					<AdjectiveText>Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
-					<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, adjectives, currentAdjective, setAdjectiveInput, setAdjectives, setCurrentAdjective); }} />
+					<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, setAdjectiveInput, true); }} />
 				</TitleTextEntryPair>
 				<TitleTextEntryPairRight>
-					<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, subjects, currentSubject, setSubjectInput, setSubjects, setCurrentSubject); }} />
+					<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, setSubjectInput, false); }} />
 					<SubjectText>Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
 				</TitleTextEntryPairRight>
 			</TitleEntryArea>

@@ -1,7 +1,7 @@
 {
   "name": "splat-title-quiz",
   "version": "0.1.0",
-  "homepage": "https://epicyoshimaster.github.io/",
+  "homepage": "https://epicyoshimaster.github.io/splat-title-quiz",
   "dependencies": {
     "@phosphor-icons/react": "^2.0.15",
     "@testing-library/jest-dom": "^5.17.0",

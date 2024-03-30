@@ -6,6 +6,9 @@ import { GithubLogo } from '@phosphor-icons/react'
 import { TitleList } from './TitleList';
 import { RowItem } from './Layout';
 import { NamedTitle, CurrentSelection, FREE_CHARACTERS, DoHintProps, DoRevealProps } from './types';
+import cheese from './assets/29quintillioncheese.mp4'
+import camo from './assets/camo-foreground-black.png'
+import greyStripedBackground from './assets/grey-striped-background.png'
 
 type EasterEggGradient = {
 	title: string;
@@ -27,21 +30,12 @@ const EASTER_EGGS: EasterEggGradient[] = [
 	{title: "Trapinch Certified", gradient: ['#f29e77', '#f29e77', '#f29e77', '#f29e77', '#e8ecf2', '#f29e77']},
 	{title: "Cheese", gradient: ['#006efd'], useVideo: true}];
 
-/*
+
 const LEFT_MESSAGES = ['(Hello and welcome to', 'Friendly-Welcoming', 'Title-Awaiting', 'Well-Wishing', '(Enter any title'];
 const RIGHT_MESSAGES = ['the Splatoon 3 Title Quiz!)', 'Splatoon 3 Title Quizzer', 'Textbox Above User', 'Good Luck Haver', 'above to begin!)'];
 
 const LEFT_DEFAULT_INDEX = 2;
-const RIGHT_DEFAULT_INDEX = 2;*/
-
-const LEFT_MESSAGES = ['Splatlandian', 'Splatling-Using', 'Splatoon 3', "Splatsville's", 'Splendid'];
-const RIGHT_MESSAGES = ['Timeline Jumper', 'Title Holder', 'Title Quiz', 'Tofu', 'Toni Kensa Model'];
-
-const LEFT_DEFAULT_INDEX = 1;
-const RIGHT_DEFAULT_INDEX = 1;
-
-//TODO:
-// - Add site icon / info
+const RIGHT_DEFAULT_INDEX = 2;
 
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
@@ -421,7 +415,7 @@ function App() {
 	<>
 		<BackBackground $gradient={currentGradient}>
 			<SecretVideo autoPlay muted loop $active={EASTER_EGGS[easterEggState].useVideo}>
-				<source src="29quintillioncheese.mp4" type="video/mp4" />
+				<source src={cheese} type="video/mp4" />
 			</SecretVideo>
 			<Background />
 		</BackBackground>
@@ -510,7 +504,7 @@ const Background = styled.div`
 	height: 100%;
 
 	background-size: 600px;
-	background-image: url('./camo-foreground-black.png');
+	background-image: url(${camo});
 
 	overflow: hidden;
 `;
@@ -640,7 +634,7 @@ const Credits = styled.div`
 
 	background-repeat: no-repeat;
 	background-size: cover;
-	background-image: url('./grey_striped_background.png');
+	background-image: url(${greyStripedBackground});
 
 	border: solid 5px #3d3e41;
 	border-radius: 1rem;

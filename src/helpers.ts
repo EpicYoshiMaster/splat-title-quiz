@@ -43,9 +43,9 @@ export const titleMatch = (a: string, b: string) => {
 /**
  * Finds the prior and next found titles from this one, if they exist
  */
-export const getSurroundingTitles = (title: NamedTitle, index: number, titles: NamedTitle[]) => {
-	const prev = titles.slice(0, index).reverse().find((item: NamedTitle) => item.found);
-	const next = titles.slice(index + 1).find((item: NamedTitle) => item.found);
+export const getSurroundingTitles = (index: number, titles: NamedTitle[], predicate: (value: NamedTitle, index: number, obj: NamedTitle[]) => unknown) => {
+	const prev = titles.slice(0, index).reverse().find(predicate);
+	const next = titles.slice(index + 1).find(predicate);
 
 	return { prev, next };
 };

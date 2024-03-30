@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { sortNoCase, formatTime, randRange, calcClampPx, calcClampRem, titleMatch, getSurroundingTitles } from './helpers';
 import { GithubLogo } from '@phosphor-icons/react'
 import { TitleList } from './TitleList';
+import { RowItem } from './Layout';
 import { NamedTitle, CurrentSelection, FREE_CHARACTERS, DoHintProps, DoRevealProps } from './types';
 
 type EasterEggGradient = {
@@ -21,10 +22,14 @@ const EASTER_EGGS: EasterEggGradient[] = [
 	{title: "Trapinch Certified", gradient: ['#f29e77', '#f29e77', '#f29e77', '#f29e77', '#e8ecf2', '#f29e77']},
 	{title: "Cheese", gradient: ['#006efd'], useVideo: true}];
 
+const LEFT_MESSAGES = ['(Hello and welcome to', 'Friendly-Welcoming', 'Title-Awaiting', 'Well-Wishing', '(Enter any title'];
+const RIGHT_MESSAGES = ['the Splatoon 3 Title Quiz!)', 'Splatoon 3 Title Quizzer', 'Textbox Above User', 'Good Luck Haver', 'above to begin!)'];
+
+const LEFT_DEFAULT_INDEX = 2;
+const RIGHT_DEFAULT_INDEX = 2;
+
 //TODO:
-// - Make Start Screen and Results Screen
-// - Look into focus-based arrow keys
-// - Make proper credits section!
+// - Add site icon / info
 
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
@@ -39,12 +44,13 @@ function App() {
 	const [ timeState, setTimer ] = useState({ time: 0, startTime: Date.now()});
 	const interval = useRef<number | null>(null);
 
-	const [ currentAdjective, setCurrentAdjective ] = useState<CurrentSelection>({ index: 0, transitionTime: 0});
-	const [ currentSubject, setCurrentSubject ] = useState<CurrentSelection>({ index: 0, transitionTime: 0});
+	const [ currentAdjective, setCurrentAdjective ] = useState<CurrentSelection>({ index: LEFT_DEFAULT_INDEX, transitionTime: 0});
+	const [ currentSubject, setCurrentSubject ] = useState<CurrentSelection>({ index: RIGHT_DEFAULT_INDEX, transitionTime: 0});
 	
 	const [ numHints, setNumHints ] = useState(0);
 	const [ numReveals, setNumReveals ] = useState(0);
 
+	const [ showResults, setShowResults ] = useState(false);
 	const [ gaveUp, setGaveUp ] = useState(false);
 	const [ gameFinished, setGameFinished ] = useState(false);
 
@@ -85,6 +91,34 @@ function App() {
 		return subjects.filter((item) => item.found).length;
 	}, [subjects]);
 
+	const resultsLeftSide = useMemo(() => {
+		let results: string[] = [];
+
+		if(gaveUp) {
+			results.push(`Gave up...`);
+		}
+		else {
+			results.push(`${formatTime(timeState.time)}`);
+		}
+		
+		results.push(`${numHints}`);
+		results.push(`${numReveals}`);
+		results.push(`Thank you`);
+
+		return results;
+	}, [numHints, numReveals, timeState, gaveUp]);
+
+	const resultsRightSide = useMemo(() => {
+		let results: string[] = [];
+
+		results.push(`Final Time`);
+		results.push(`Hints`);
+		results.push(`Reveals`);
+		results.push(`for playing!`);
+
+		return results;
+	}, []);
+
 	useEffect(() => {
 		if(isRunning && !interval.current) {
 			setTimer(prevState => ({ ...prevState, startTime: Date.now()}));
@@ -107,8 +141,12 @@ function App() {
 	useEffect(() => {
 		if(!gameFinished && numAdjectives >= adjectiveList.length && numSubjects >= subjectList.length) {
 			setGameFinished(true);
+			setShowResults(true);
+
+			setCurrentAdjective({ index: resultsLeftSide.length - 1, transitionTime: 2});
+			setCurrentSubject({ index: resultsRightSide.length - 1, transitionTime: 2});
 		}
-	}, [numAdjectives, numSubjects, gameFinished]);
+	}, [numAdjectives, numSubjects, gameFinished, resultsLeftSide.length, resultsRightSide.length]);
 
 	const setTitleValue = (
 		newValue: NamedTitle,
@@ -127,15 +165,13 @@ function App() {
 		const randomAdjective = getRandomTitle((item) => !item.found, adjectives);
 
 		if(randomAdjective) {
-			const { prev, next } = getSurroundingTitles(randomAdjective.title, randomAdjective.index, adjectives);
-			doHint(randomAdjective.title, randomAdjective.index, prev, next, true);
+			doHint(randomAdjective.title, randomAdjective.index, true);
 		}
 
 		const randomSubject = getRandomTitle((item) => !item.found, subjects);
 
 		if(randomSubject) {
-			const { prev, next } = getSurroundingTitles(randomSubject.title, randomSubject.index, adjectives);
-			doHint(randomSubject.title, randomSubject.index, prev, next, false);
+			doHint(randomSubject.title, randomSubject.index, false);
 		}
 	}
 
@@ -171,22 +207,21 @@ function App() {
 
 	const getTitleListSide = useCallback((isLeftSide: boolean) => {
 		if(isLeftSide) {
-			return { setTitles: setAdjectives, setCurrentSelection: setCurrentAdjective };
+			return { titles: adjectives, setTitles: setAdjectives, setCurrentSelection: setCurrentAdjective };
 		}
 		else {
-			return { setTitles: setSubjects, setCurrentSelection: setCurrentSubject };
+			return { titles: subjects, setTitles: setSubjects, setCurrentSelection: setCurrentSubject };
 		}
-	}, [setAdjectives, setCurrentAdjective, setSubjects, setCurrentSubject]);
+	}, [adjectives, setAdjectives, setCurrentAdjective, subjects, setSubjects, setCurrentSubject]);
 
-	const doHint: DoHintProps = useCallback((hintedTitle, titleIndex, previousFoundTitle, nextFoundTitle, isLeftSide) => {
+	const doHint: DoHintProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
 
-		const { setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
+		const { titles, setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
 
 		if(hintedTitle.found) return;
 
 		//get previous and next found titles if they exist
-		//const previousFoundTitle = titles.slice(0, titleIndex).reverse().find((item: NamedTitle) => item.found);
-		//const nextFoundTitle = titles.slice(titleIndex + 1).find((item: NamedTitle) => item.found);
+		const { prev, next } = getSurroundingTitles(titleIndex, titles, (title) => title.found);
 
 		hintedTitle.hinted = true;
 
@@ -199,15 +234,15 @@ function App() {
 
 			let isTrivial = true;
 
-			if(!previousFoundTitle || !nextFoundTitle) {
+			if(!prev || !next) {
 				isTrivial = false;
 			}
 
-			if(previousFoundTitle && (i >= previousFoundTitle.title.length || previousFoundTitle.title[i] !== hintedTitle.title[i])) {
+			if(prev && (i >= prev.title.length || prev.title[i] !== hintedTitle.title[i])) {
 				isTrivial = false;
 			}
 
-			if(nextFoundTitle && (i >= nextFoundTitle.title.length || nextFoundTitle.title[i] !== hintedTitle.title[i])) {
+			if(next && (i >= next.title.length || next.title[i] !== hintedTitle.title[i])) {
 				isTrivial = false;
 			}
 
@@ -245,12 +280,37 @@ function App() {
 		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 		setSubjects(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
 
-		setCurrentAdjective({ index: 0, transitionTime: 0});
-		setCurrentSubject({ index: 0, transitionTime: 0});
+		setCurrentAdjective({ index: LEFT_DEFAULT_INDEX, transitionTime: 0});
+		setCurrentSubject({ index: RIGHT_DEFAULT_INDEX, transitionTime: 0});
 		setIsRunning(false);
 		setGameFinished(false);
+		setShowResults(false);
 		setGaveUp(false);
 		setTimer(prevState => ({ time: 0, startTime: Date.now()}));
+	}
+	
+	const onPressGameStateButton = () => {
+		if(gameFinished) {
+			onPressToggleResults();
+		}
+		else {
+			onPressGiveUp();
+		}
+	}
+
+	const onPressToggleResults = () => {
+		if(showResults) {
+			setShowResults(false);
+
+			setCurrentAdjective({ index: 0, transitionTime: 2});
+			setCurrentSubject({ index: 0, transitionTime: 2});
+		}
+		else {
+			setShowResults(true);
+
+			setCurrentAdjective({ index: resultsLeftSide.length - 1, transitionTime: 2});
+			setCurrentSubject({ index: resultsRightSide.length - 1, transitionTime: 2});
+		}
 	}
 
 	const onPressGiveUp = () => {
@@ -258,6 +318,9 @@ function App() {
 		setSubjects(subjects.map((item) => { return {...item, found: true}}));
 
 		setGaveUp(true);
+		setGameFinished(true);
+		setShowResults(true);
+		setIsRunning(false);
 	}
 
 	const checkInput = (
@@ -303,13 +366,11 @@ function App() {
 		</BackBackground>
 		<Content>
 			<TopRow>
-				<TopRowItem as="button" onClick={() => { onPressHint(); }}>Random Hint</TopRowItem>
-				<TopRowItem as="button" onClick={() => { onPressReveal(); }}>Random Reveal</TopRowItem>
-				<TopRowItem as="button" onClick={() => { onPressReset(); }}>Reset</TopRowItem>
-				<TopRowItem as="button" onClick={() => { onPressGiveUp(); }}>Give Up</TopRowItem>
-				<TimeDisplay>
-					Time: {formatTime(timeState.time)}
-				</TimeDisplay>
+				<RowItem as="button" onClick={() => { onPressHint(); }}>Random Hint</RowItem>
+				<RowItem as="button" onClick={() => { onPressReveal(); }}>Random Reveal</RowItem>
+				<RowItem as="button" onClick={() => { onPressReset(); }}>Reset</RowItem>
+				<RowItem as="button" onClick={() => { onPressGameStateButton(); }}>{gameFinished ? (showResults ? `Show Titles` : `Show Results`) : `Give Up`}</RowItem>
+				<RowItem>Time: {formatTime(timeState.time)}</RowItem>
   			</TopRow>
 			<TitleEntryArea>
 				<TitleTextEntryPair>
@@ -324,31 +385,35 @@ function App() {
 			<Collection>
 				<TitleList 
 					titles={adjectives} 
-					setTitles={setAdjectives}
 					currentSelection={currentAdjective}
 					setCurrentSelection={setCurrentAdjective}
 					doHint={doHint}
 					doReveal={doReveal}
-					noTitlesMessage='Enter your first adjective above!'
+					showResults={showResults}
+					startMessages={LEFT_MESSAGES}
+					resultMessages={resultsLeftSide}
 					isLeftSide={true}/>
 				<CenterBar>
 					<CenterBarReel />
 				</CenterBar>
 				<TitleList 
 					titles={subjects} 
-					setTitles={setSubjects}
 					currentSelection={currentSubject}
 					setCurrentSelection={setCurrentSubject}
 					doHint={doHint}
 					doReveal={doReveal}
-					noTitlesMessage='Enter your first subject above!'
+					showResults={showResults}
+					startMessages={RIGHT_MESSAGES}
+					resultMessages={resultsRightSide}
 					isLeftSide={false}/>
 			</Collection>
 			<Credits>
-				<div>Click or Press a title for a hint.</div>
-				<div>Click or Press and Hold a title to reveal it.</div>
-				<div>Created by EpicYoshiMaster!</div>
-				<div><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></div>
+				<CreditsRow>Hi there! Welcome to the Splatoon 3 Title Quiz!</CreditsRow>
+				<CreditsRow>There are a LOT of titles in this game, how many can you name??</CreditsRow>
+				<CreditsRow>You can press on a specific title to get a hint.</CreditsRow>
+				<CreditsRow>Or, press and hold on a title to reveal it.</CreditsRow>
+				<CreditsRow>Created by <a href='https://twitter.com/EpicYoshiMaster'>EpicYoshiMaster</a>!</CreditsRow>
+				<CreditsRow><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></CreditsRow>
 			</Credits>
 		</Content>
 	</>
@@ -391,6 +456,7 @@ const Background = styled.div`
 
 const Content = styled.div`
 	position: relative;
+	height: 100vh;
 
 	display: flex;
 	flex-direction: column;
@@ -406,29 +472,6 @@ const Content = styled.div`
 const TopRow = styled.div`
 	display: flex;
 	flex-direction: row;
-`;
-
-const TopRowItem = styled.div`
-	margin: 5px;
-	margin: ${calcClampPx(2, 10, 320, 1000)};
-
-	padding: 5px;
-	padding: ${calcClampPx(2, 10, 320, 1000)};
-
-	font-family: Splatoon;
-	
-	font-size: 1.25rem;
-	font-size: ${calcClampRem(0.8, 1.75, 320, 1000, 16)};
-
-	border-radius: 0.5rem;
-
-	text-align: center;
-
-	color: #ffffff;
-	background-color: #4c4c4c;
-`
-
-const TimeDisplay = styled(TopRowItem)`
 `;
 
 //
@@ -450,7 +493,7 @@ const TitleTextEntryPair = styled.div`
 	justify-content: center;
 	flex-direction: column;
 
-	@media screen and (min-width: 1200px) {
+	@media screen and (min-width: 1300px) {
 		flex-direction: row;
 	}
 `;
@@ -458,7 +501,7 @@ const TitleTextEntryPair = styled.div`
 const TitleTextEntryPairRight = styled(TitleTextEntryPair)`
 	flex-direction: column-reverse;
 
-	@media screen and (min-width: 1200px) {
+	@media screen and (min-width: 1300px) {
 		flex-direction: row;
 	}
 `;
@@ -489,7 +532,7 @@ const Collection = styled.div`
 	position: relative;
 	width: min(95vw, 80rem);
 	height: 35rem;
-	height: ${calcClampRem(20, 50, 600, 1200, 16, "vh")};
+	height: ${calcClampRem(15, 45, 600, 1200, 16, "vh")};
 
 	display: grid;
 	grid-template-columns: 1fr max-content 1fr;
@@ -527,10 +570,29 @@ const CenterBarReel = styled.div`
 // Credits
 //
 const Credits = styled.div`
+	padding: ${calcClampPx(5, 20, 400, 1300)};
+
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
 
+	background-repeat: no-repeat;
+	background-size: cover;
+	background-image: url('./grey_striped_background.png');
+
+	border: solid 5px #3d3e41;
+	border-radius: 1rem;
+
 	font-size: ${calcClampRem(1.2, 2, 320, 1100, 16)};
+`;
+
+const CreditsRow = styled.div`
+
+	& a {
+		color: #9025c6;
+	}
+
+	font-size: 1rem;
+	font-size: ${calcClampRem(0.8, 1.75, 500, 1100, 16)};
 `;

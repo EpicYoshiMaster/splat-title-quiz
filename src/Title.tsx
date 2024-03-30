@@ -1,6 +1,6 @@
-import React, { memo, useCallback } from "react";
+import React, { useCallback } from "react";
 import { NamedTitle, CurrentSelection, HintTitleProps, RevealTitleProps } from "./types";
-import { useLongPress } from "use-long-press";
+import { LongPressEventType, useLongPress } from "use-long-press";
 import styled from "styled-components";
 import { FREE_CHARACTERS } from "./types";
 
@@ -9,13 +9,11 @@ interface TitleProps {
     index: number;
     selected: boolean;
     setCurrentSelection: React.Dispatch<React.SetStateAction<CurrentSelection>>;
-    previousFoundTitle: NamedTitle | undefined;
-    nextFoundTitle: NamedTitle | undefined;
     hintTitle: HintTitleProps;
     revealTitle: RevealTitleProps;
 }
 
-export const Title: React.FC<TitleProps> = memo(function Title({title, index, selected, setCurrentSelection, previousFoundTitle, nextFoundTitle, hintTitle, revealTitle}) {
+export const Title: React.FC<TitleProps> = ({title, index, selected, setCurrentSelection, hintTitle, revealTitle}) => {
     const callback = useCallback(() => {
         
         if(title.found) {
@@ -35,13 +33,15 @@ export const Title: React.FC<TitleProps> = memo(function Title({title, index, se
                 return;
             }
 
-            hintTitle(title, index, previousFoundTitle, nextFoundTitle);
+            hintTitle(title, index);
         },
-		cancelOutsideElement: true
+        filterEvents: (event) => true,
+		cancelOutsideElement: true,
+        detect: LongPressEventType.Pointer
 	});
 
-    const getDisplayTitle = () => {
-        if(title.found) return title.title;
+    const getDisplayTitle = useCallback(() => {
+        if(title.found || title.revealed) return title.title;
 
         if(title.hinted) {
             let hintedTitle = "";
@@ -65,7 +65,7 @@ export const Title: React.FC<TitleProps> = memo(function Title({title, index, se
         else {
             return "???";
         }
-    };
+    }, [title]);
 
     return (
         <TitleEntry
@@ -75,9 +75,9 @@ export const Title: React.FC<TitleProps> = memo(function Title({title, index, se
 				{getDisplayTitle()}
 		</TitleEntry>
     )
-});
+};
 
-const TitleEntry = styled.div<{ $selected: boolean}>`
+const TitleEntry = styled.div<{ $selected: boolean }>`
 	cursor: pointer;
 	height: 2em;
 

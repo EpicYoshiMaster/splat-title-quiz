@@ -37,6 +37,9 @@ const RIGHT_MESSAGES = ['the Splatoon 3 Title Quiz!)', 'Splatoon 3 Title Quizzer
 const LEFT_DEFAULT_INDEX = 2;
 const RIGHT_DEFAULT_INDEX = 2;
 
+// - Fix mobile layout issues / optimization
+// - Save Progress
+
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
 

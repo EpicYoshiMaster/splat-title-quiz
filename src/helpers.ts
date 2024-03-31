@@ -27,6 +27,11 @@ export const titleNormalize = (title: string) => {
     title = title.replace("\u2013", "-");
     title = title.replace("\u03c9", "w");
 
+	//Ensure mobile devices entering quote symbols are normalized
+	title = title.replace("\u2018", "'");
+	title = title.replace("\u2019", "'");
+	title = title.replace("`", "'");
+
     return title;
 }
 

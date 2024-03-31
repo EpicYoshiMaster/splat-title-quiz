@@ -1,4 +1,5 @@
 import { NamedTitle } from "./types";
+import { FREE_CHARACTERS } from "./types";
 
 /**
  * Sorts titles a and b, returns -1 if a is earlier, 1 if a is later, and 0 if they are the same.
@@ -43,6 +44,50 @@ export const titleMatch = (a: string, b: string) => {
     const titleB = titleNormalize(b);
 
     return titleA === titleB;
+}
+
+/**
+ * Determines the next hint state to set for a title, based on its previous and next found titles
+ */
+export const getNextHintState = (hintedTitle: NamedTitle, prev?: NamedTitle, next?: NamedTitle) => {
+	hintedTitle.hinted = true;
+
+	let i = hintedTitle.lastHintedIndex + 1;
+
+	while(i < hintedTitle.title.length) {
+		//if the character is trivial (by surrounding titles), increment the hint amount for free
+		//if the character is a space, increment the hint amount for free
+		//if the character is neither, this is the last new hint, leave
+
+		let isTrivial = true;
+
+		if(!prev || !next) {
+			isTrivial = false;
+		}
+
+		if(prev && (i >= prev.title.length || prev.title[i] !== hintedTitle.title[i])) {
+			isTrivial = false;
+		}
+
+		if(next && (i >= next.title.length || next.title[i] !== hintedTitle.title[i])) {
+			isTrivial = false;
+		}
+
+		if(isTrivial || FREE_CHARACTERS.includes(hintedTitle.title[i])) {
+			i += 1;
+			continue;
+		}
+			
+		break;
+	}
+
+	hintedTitle.lastHintedIndex = i;
+
+	if(hintedTitle.lastHintedIndex >= hintedTitle.title.length) {
+		hintedTitle.found = true;
+	}
+
+	return hintedTitle;
 }
 
 /**

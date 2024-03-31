@@ -21,4 +21,4 @@ export type DoRevealProps = (
 export type HintTitleProps = (title: NamedTitle, index: number) => void;
 export type RevealTitleProps = (title: NamedTitle, index: number) => void;
 
-export const FREE_CHARACTERS = [" ", "-", "\u2013", "'"];
+export const FREE_CHARACTERS = [" ", "-", "\u2013", "'", "\u2018", "\u2019"];

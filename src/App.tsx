@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Data from './titles.json'
 import styled from 'styled-components';
-import { sortNoCase, formatTime, calcClampPx, calcClampRem, titleMatch, getSurroundingTitles, getRandomTitle } from './helpers';
+import { sortNoCase, formatTime, calcClampPx, calcClampRem, titleMatch, getSurroundingTitles, getRandomTitle, getNextHintState } from './helpers';
 import { GithubLogo } from '@phosphor-icons/react'
 import { TitleList } from './TitleList';
 import { RowItem } from './Layout';
-import { NamedTitle, CurrentSelection, FREE_CHARACTERS, DoHintProps, DoRevealProps } from './types';
+import { NamedTitle, CurrentSelection, DoHintProps, DoRevealProps } from './types';
 import cheese from './assets/29quintillioncheese.mp4'
 import camo from './assets/camo-foreground-black.png'
 import greyStripedBackground from './assets/grey-striped-background.png'
@@ -129,59 +129,6 @@ function App() {
 	const numSubjects = useMemo(() => {
 		return subjects.filter((item) => item.found).length;
 	}, [subjects]);
-	
-	/*
-	const resultsLeftSide = useMemo(() => {
-		let results: string[] = [];
-
-		if(gaveUp) {
-			results.push(`Gave up...`);
-		}
-		else {
-			results.push(`${formatTime(timeState.time)}`);
-		}
-		
-		results.push(`${numSubjects + numAdjectives}`);
-		results.push(`${numHints}`);
-		results.push(`${numReveals}`);
-
-		if(firstTitle) {
-			results.push(`First`);
-			results.push(`${firstTitle.adjective}`);
-		}
-
-		if(luckyTitle) {
-			results.push(`Lucky`);
-			results.push(`${luckyTitle.adjective}`);
-		}
-
-		results.push(`Thank you`);
-
-		return results;
-	}, [numHints, numReveals, timeState, gaveUp, numAdjectives, numSubjects, firstTitle, luckyTitle]);
-
-	const resultsRightSide = useMemo(() => {
-		let results: string[] = [];
-
-		results.push(`Final Time`);
-		results.push(`Titles Found`);
-		results.push(`Hints`);
-		results.push(`Reveals`);
-
-		if(firstTitle) {
-			results.push(`Title`);
-			results.push(`${firstTitle.subject}`);
-		}
-
-		if(luckyTitle) {
-			results.push(`Title`);
-			results.push(`${luckyTitle.subject}`);
-		}
-		
-		results.push(`for playing!`);
-
-		return results;
-	}, [firstTitle, luckyTitle]);*/
 
 	const getResults = useCallback((
 		time: number, 
@@ -196,18 +143,13 @@ function App() {
 		let leftResults = [];
 		let rightResults = [];
 
-		if(hasGivenUp) {
-			leftResults.push(`Gave up...`);
-		}
-		else {
-			leftResults.push(`${formatTime(time)}`);
-		}
+		leftResults.push(hasGivenUp ? `Gave up...` : `${formatTime(time)}`);
 		
 		leftResults.push(`${numSubjects + numAdjectives}`);
 		leftResults.push(`${numHints}`);
 		leftResults.push(`${numReveals}`);
 
-		if(firstTitle) {
+		if(firstTitle.adjective && firstTitle.subject) {
 			leftResults.push(`First`);
 			leftResults.push(`${firstTitle.adjective}`);
 		}
@@ -224,7 +166,7 @@ function App() {
 		rightResults.push(`Hints`);
 		rightResults.push(`Reveals`);
 
-		if(firstTitle) {
+		if(firstTitle.adjective && firstTitle.subject) {
 			rightResults.push(`Title`);
 			rightResults.push(`${firstTitle.subject}`);
 		}
@@ -277,11 +219,17 @@ function App() {
 	) => {
 
 		if(newValue.found) {
-			if(isLeftSide && !firstTitle.adjective) {
-				setFirstTitle(firstTitle => { return { ...firstTitle, adjective: newValue.title}});
+			if(isLeftSide) {
+				setFirstTitle(firstTitle => { 
+					if(firstTitle.adjective) return firstTitle;
+					return { ...firstTitle, adjective: newValue.title}
+				});
 			}
-			else if(!isLeftSide && !firstTitle.subject) {
-				setFirstTitle(firstTitle => { return { ...firstTitle, subject: newValue.title}});
+			else if(!isLeftSide) {
+				setFirstTitle(firstTitle => { 
+					if(firstTitle.subject) return firstTitle;
+					return { ...firstTitle, subject: newValue.title}
+				});
 			}
 		}
 
@@ -290,7 +238,7 @@ function App() {
 			return values.map((item, index) => { return (titleIndex === index) ? newValue : item; });
 		});
 		setCurrentItem({ index: titleIndex, transitionTime: 2});
-	}, [firstTitle]);
+	}, []);
 
 	const getTitleListSide = useCallback((isLeftSide: boolean) => {
 		if(isLeftSide) {
@@ -302,56 +250,18 @@ function App() {
 	}, [adjectives, setAdjectives, setCurrentAdjective, subjects, setSubjects, setCurrentSubject]);
 
 	const doHint: DoHintProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
-		const { titles, setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
-
 		if(hintedTitle.found) return;
 
-		//get previous and next found titles if they exist
+		const { titles, setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
 		const { prev, next } = getSurroundingTitles(titleIndex, titles, (title) => title.found);
 
-		hintedTitle.hinted = true;
-
-		let i = hintedTitle.lastHintedIndex + 1;
-
-		while(i < hintedTitle.title.length) {
-			//if the character is trivial (by surrounding titles), increment the hint amount for free
-			//if the character is a space, increment the hint amount for free
-			//if the character is neither, this is the last new hint, leave
-
-			let isTrivial = true;
-
-			if(!prev || !next) {
-				isTrivial = false;
-			}
-
-			if(prev && (i >= prev.title.length || prev.title[i] !== hintedTitle.title[i])) {
-				isTrivial = false;
-			}
-
-			if(next && (i >= next.title.length || next.title[i] !== hintedTitle.title[i])) {
-				isTrivial = false;
-			}
-
-			if(isTrivial || FREE_CHARACTERS.includes(hintedTitle.title[i])) {
-				i += 1;
-				continue;
-			}
-			
-			break;
-		}
-
-		hintedTitle.lastHintedIndex = i;
-
-		if(hintedTitle.lastHintedIndex >= hintedTitle.title.length) {
-			hintedTitle.found = true;
-		}
+		hintedTitle = getNextHintState(hintedTitle, prev, next);
 
 		setNumHints(numHints => numHints + 1);
 		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection, isLeftSide);
 	}, [getTitleListSide, setTitleValue]);
 
 	const doReveal: DoRevealProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
-		const { setTitles, setCurrentSelection } = getTitleListSide(isLeftSide);
 
 		if(hintedTitle.found) return;
 
@@ -359,8 +269,12 @@ function App() {
 		hintedTitle.revealed = true;
 
 		setNumReveals(numReveals => numReveals + 1);
+
+		const setTitles = isLeftSide ? setAdjectives : setSubjects;
+		const setCurrentSelection = isLeftSide ? setCurrentAdjective : setCurrentSubject;
+
 		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection, isLeftSide);
-	}, [getTitleListSide, setTitleValue]);
+	}, [setTitleValue]);
 
 	//
 	// Buttons

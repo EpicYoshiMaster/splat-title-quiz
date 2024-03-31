@@ -59,7 +59,8 @@ function App() {
 	const [ numHints, setNumHints ] = useState(0);
 	const [ numReveals, setNumReveals ] = useState(0);
 	const [ firstTitle, setFirstTitle] = useState<TitlePair>({ adjective: "", subject: "" });
-	const [ luckyTitle, setLuckyTitle ] = useState<TitlePair>({ adjective: "", subject: "" });
+	const [ leftResults, setLeftResults ] = useState<string[]>([]);
+	const [ rightResults, setRightResults ] = useState<string[]>([]);
 
 	const [ showResults, setShowResults ] = useState(false);
 	const [ gaveUp, setGaveUp ] = useState(false);
@@ -129,6 +130,7 @@ function App() {
 		return subjects.filter((item) => item.found).length;
 	}, [subjects]);
 	
+	/*
 	const resultsLeftSide = useMemo(() => {
 		let results: string[] = [];
 
@@ -179,7 +181,63 @@ function App() {
 		results.push(`for playing!`);
 
 		return results;
-	}, [firstTitle, luckyTitle]);
+	}, [firstTitle, luckyTitle]);*/
+
+	const getResults = useCallback((
+		time: number, 
+		numAdjectives: number,
+		numSubjects: number,
+		numHints: number,
+		numReveals: number,
+		firstTitle: TitlePair,
+		luckyTitle: TitlePair,
+		hasGivenUp: boolean) => {
+
+		let leftResults = [];
+		let rightResults = [];
+
+		if(hasGivenUp) {
+			leftResults.push(`Gave up...`);
+		}
+		else {
+			leftResults.push(`${formatTime(time)}`);
+		}
+		
+		leftResults.push(`${numSubjects + numAdjectives}`);
+		leftResults.push(`${numHints}`);
+		leftResults.push(`${numReveals}`);
+
+		if(firstTitle) {
+			leftResults.push(`First`);
+			leftResults.push(`${firstTitle.adjective}`);
+		}
+
+		if(luckyTitle) {
+			leftResults.push(`Lucky`);
+			leftResults.push(`${luckyTitle.adjective}`);
+		}
+
+		leftResults.push(`Thank you`);
+
+		rightResults.push(`Final Time`);
+		rightResults.push(`Titles Found`);
+		rightResults.push(`Hints`);
+		rightResults.push(`Reveals`);
+
+		if(firstTitle) {
+			rightResults.push(`Title`);
+			rightResults.push(`${firstTitle.subject}`);
+		}
+
+		if(luckyTitle) {
+			rightResults.push(`Title`);
+			rightResults.push(`${luckyTitle.subject}`);
+		}
+		
+		rightResults.push(`for playing!`);
+		
+		return { leftResults, rightResults };
+	}, []);
 
 	useEffect(() => {
 		if(!gameFinished && numAdjectives >= adjectiveList.length && numSubjects >= subjectList.length) {
@@ -189,17 +247,22 @@ function App() {
 
 			const randomAdjective = getRandomTitle(() => true, adjectives);
 			const randomSubject = getRandomTitle(() => true, subjects);
+
+			let luckyTitle: TitlePair = { adjective: "", subject: ""};
+
 			if(randomAdjective && randomSubject) {
-				setLuckyTitle({ adjective: randomAdjective.title.title, subject: randomSubject.title.title});
+				luckyTitle = { adjective: randomAdjective.title.title, subject: randomSubject.title.title };
 			}
-			else {
-				setLuckyTitle({ adjective: "", subject: ""});
-			}
+
+			const { leftResults, rightResults } = getResults(timeState.time, numAdjectives, numSubjects, numHints, numReveals, firstTitle, luckyTitle, gaveUp);
+
+			setLeftResults(leftResults);
+			setRightResults(rightResults);
 
 			setCurrentAdjective({ index: 0, transitionTime: 2});
 			setCurrentSubject({ index: 0, transitionTime: 2});
 		}
-	}, [numAdjectives, numSubjects, gameFinished, resultsLeftSide.length, resultsRightSide.length, currentAdjective, currentSubject, adjectives, subjects]);
+	}, [numAdjectives, numSubjects, gameFinished, currentAdjective, currentSubject, adjectives, subjects, firstTitle, getResults, numHints, numReveals, timeState.time, gaveUp]);
 
 	//
 	// Game Functionality
@@ -344,7 +407,6 @@ function App() {
 		setNumHints(0);
 		setNumReveals(0);
 		setFirstTitle({ adjective: "", subject: ""});
-		setLuckyTitle({ adjective: "", subject: ""});
 		setTimer(prevState => ({ time: 0, startTime: Date.now()}));
 	}
 	
@@ -449,7 +511,7 @@ function App() {
 					doReveal={doReveal}
 					showResults={showResults}
 					startMessages={LEFT_MESSAGES}
-					resultMessages={resultsLeftSide}
+					resultMessages={leftResults}
 					isLeftSide={true}/>
 				<CenterBar>
 					<CenterBarReel />
@@ -462,7 +524,7 @@ function App() {
 					doReveal={doReveal}
 					showResults={showResults}
 					startMessages={RIGHT_MESSAGES}
-					resultMessages={resultsRightSide}
+					resultMessages={rightResults}
 					isLeftSide={false}/>
 			</Collection>
 			<Credits>

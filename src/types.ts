@@ -4,11 +4,17 @@ export interface NamedTitle {
 	hinted: boolean;
 	lastHintedIndex: number;
 	revealed: boolean;
+	gaveUp: boolean;
 }
 
 export interface CurrentSelection {
 	index: number;
 	transitionTime: number;
+}
+
+export interface TimeState {
+	time: number;
+	startTime: number;
 }
 
 export type DoHintProps = (hintedTitle: NamedTitle, titleIndex: number, isLeftSide: boolean) => void;

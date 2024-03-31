@@ -5,10 +5,11 @@ import { sortNoCase, formatTime, calcClampPx, calcClampRem, titleMatch, getSurro
 import { GithubLogo } from '@phosphor-icons/react'
 import { TitleList } from './TitleList';
 import { RowItem } from './Layout';
-import { NamedTitle, CurrentSelection, DoHintProps, DoRevealProps } from './types';
+import { NamedTitle, CurrentSelection, DoHintProps, DoRevealProps, TimeState } from './types';
 import cheese from './assets/29quintillioncheese.mp4'
 import camo from './assets/camo-foreground-black.png'
 import greyStripedBackground from './assets/grey-striped-background.png'
+import { useLocalStorage } from './hooks';
 
 type EasterEggGradient = {
 	title: string;
@@ -44,32 +45,31 @@ const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
 
 function App() {
-	const [ adjectives, setAdjectives ] = useState<NamedTitle[]>(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
-	const [ subjects, setSubjects ] = useState<NamedTitle[]>(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
+	const [ adjectives, setAdjectives ] = useLocalStorage<NamedTitle[]>("adjectives", adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false, gaveUp: false}}));
+	const [ subjects, setSubjects ] = useLocalStorage<NamedTitle[]>("subjects", subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false, gaveUp: false}}));
 	const [ adjectiveInput, setAdjectiveInput] = useState("");
 	const [ subjectInput, setSubjectInput] = useState("");
 
 	const [ isRunning, setIsRunning ] = useState(false);
-	const [ timeState, setTimer ] = useState({ time: 0, startTime: Date.now()});
+	const [ timeState, setTimer ] = useLocalStorage<TimeState>("time", { time: 0, startTime: Date.now()});
 	const interval = useRef<number | null>(null);
 
-	const [ currentAdjective, setCurrentAdjective ] = useState<CurrentSelection>({ index: LEFT_DEFAULT_INDEX, transitionTime: 0});
-	const [ currentSubject, setCurrentSubject ] = useState<CurrentSelection>({ index: RIGHT_DEFAULT_INDEX, transitionTime: 0});
+	const [ currentAdjective, setCurrentAdjective ] = useLocalStorage<CurrentSelection>("currentAdjective", { index: LEFT_DEFAULT_INDEX, transitionTime: 0});
+	const [ currentSubject, setCurrentSubject ] = useLocalStorage<CurrentSelection>("currentSubject", { index: RIGHT_DEFAULT_INDEX, transitionTime: 0});
 	
-	const [ numHints, setNumHints ] = useState(0);
-	const [ numReveals, setNumReveals ] = useState(0);
-	const [ firstTitle, setFirstTitle] = useState<TitlePair>({ adjective: "", subject: "" });
+	const [ numHints, setNumHints ] = useLocalStorage<number>("numHints", 0);
+	const [ numReveals, setNumReveals ] = useLocalStorage<number>("numReveals", 0);
+	const [ firstTitle, setFirstTitle] = useLocalStorage<TitlePair>("firstTitle", { adjective: "", subject: "" });
 	const [ leftResults, setLeftResults ] = useState<string[]>([]);
 	const [ rightResults, setRightResults ] = useState<string[]>([]);
 
 	const [ showResults, setShowResults ] = useState(false);
-	const [ gaveUp, setGaveUp ] = useState(false);
+	const [ gaveUp, setGaveUp ] = useLocalStorage<boolean>("gaveUp", false);
 	const [ gameFinished, setGameFinished ] = useState(false);
 
 	const [ easterEggState, setEasterEggState ] = useState(0);
 
 	const currentGradient = useMemo(() => {
-
 		let gradient = "";
 
 		if(EASTER_EGGS[easterEggState].gradient.length === 1) {
@@ -91,13 +91,13 @@ function App() {
 	// Timer
 	//
 
-	const updateTime = () => {
+	const updateTime = useCallback(() => {
 		setTimer(prevState => (
 			{
 			time: prevState.time + (Date.now() - prevState.startTime),
 			startTime: Date.now()
 		}));
-	}
+	}, [setTimer]);
 	
 	useEffect(() => {
 		if(isRunning && !interval.current) {
@@ -116,7 +116,7 @@ function App() {
 			interval.current = null;
 		}
 
-	}, [isRunning]);
+	}, [isRunning, setTimer, updateTime]);
 
 	//
 	// Results Data
@@ -187,6 +187,9 @@ function App() {
 			setShowResults(true);
 			setIsRunning(false);
 
+			const numAdjectivesFound = adjectives.filter((item) => { return item.found && !item.gaveUp; }).length;
+			const numSubjectsFound = subjects.filter((item) => { return item.found && !item.gaveUp; }).length;
+
 			const randomAdjective = getRandomTitle(() => true, adjectives);
 			const randomSubject = getRandomTitle(() => true, subjects);
 
@@ -196,7 +199,7 @@ function App() {
 				luckyTitle = { adjective: randomAdjective.title.title, subject: randomSubject.title.title };
 			}
 
-			const { leftResults, rightResults } = getResults(timeState.time, numAdjectives, numSubjects, numHints, numReveals, firstTitle, luckyTitle, gaveUp);
+			const { leftResults, rightResults } = getResults(timeState.time, numAdjectivesFound, numSubjectsFound, numHints, numReveals, firstTitle, luckyTitle, gaveUp);
 
 			setLeftResults(leftResults);
 			setRightResults(rightResults);
@@ -204,12 +207,12 @@ function App() {
 			setCurrentAdjective({ index: 0, transitionTime: 2});
 			setCurrentSubject({ index: 0, transitionTime: 2});
 		}
-	}, [numAdjectives, numSubjects, gameFinished, currentAdjective, currentSubject, adjectives, subjects, firstTitle, getResults, numHints, numReveals, timeState.time, gaveUp]);
+	}, [numAdjectives, numSubjects, gameFinished, currentAdjective, currentSubject, adjectives, subjects, firstTitle, getResults, numHints, numReveals, timeState.time, gaveUp, setCurrentAdjective, setCurrentSubject]);
 
 	//
 	// Game Functionality
 	//
-
+		
 	const setTitleValue = useCallback((
 		newValue: NamedTitle,
 		titleIndex: number,
@@ -238,7 +241,7 @@ function App() {
 			return values.map((item, index) => { return (titleIndex === index) ? newValue : item; });
 		});
 		setCurrentItem({ index: titleIndex, transitionTime: 2});
-	}, []);
+	}, [setFirstTitle]);
 
 	const getTitleListSide = useCallback((isLeftSide: boolean) => {
 		if(isLeftSide) {
@@ -259,7 +262,7 @@ function App() {
 
 		setNumHints(numHints => numHints + 1);
 		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection, isLeftSide);
-	}, [getTitleListSide, setTitleValue]);
+	}, [getTitleListSide, setTitleValue, setNumHints]);
 
 	const doReveal: DoRevealProps = useCallback((hintedTitle, titleIndex, isLeftSide) => {
 
@@ -274,7 +277,7 @@ function App() {
 		const setCurrentSelection = isLeftSide ? setCurrentAdjective : setCurrentSubject;
 
 		setTitleValue(hintedTitle, titleIndex, setTitles, setCurrentSelection, isLeftSide);
-	}, [setTitleValue]);
+	}, [setTitleValue, setAdjectives, setSubjects, setCurrentAdjective, setCurrentSubject, setNumReveals]);
 
 	//
 	// Buttons
@@ -309,8 +312,9 @@ function App() {
 	}
 	
 	const onPressReset = () => {
-		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
-		setSubjects(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false}}));
+		localStorage.clear();
+		setAdjectives(adjectiveList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false, gaveUp: false}}));
+		setSubjects(subjectList.map((value) => { return { title: value, found: false, hinted: false, lastHintedIndex: -1, revealed: false, gaveUp: false}}));
 
 		setCurrentAdjective({ index: LEFT_DEFAULT_INDEX, transitionTime: 0});
 		setCurrentSubject({ index: RIGHT_DEFAULT_INDEX, transitionTime: 0});
@@ -349,8 +353,15 @@ function App() {
 	}
 
 	const onPressGiveUp = () => {
-		setAdjectives(adjectives.map((item) => { return { ...item, found: true}}));
-		setSubjects(subjects.map((item) => { return {...item, found: true}}));
+		setAdjectives(adjectives.map((item) => { 
+			if(item.found) return item;
+			return { ...item, found: true, gaveUp: true}
+		}));
+
+		setSubjects(subjects.map((item) => { 
+			if(item.found) return item;
+			return { ...item, found: true, gaveUp: true}
+		}));
 
 		setGaveUp(true);
 	}

@@ -69,7 +69,7 @@ export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titl
 		}
 	}, [currentSelection, setCurrentSelection, titles, listLength, hasStartedTitles, showResults]);
 
-    const updateKey = (key: string) => {
+    const updateKey = useCallback((key: string) => {
 		switch(key) {
 			case "ArrowUp":
 				translateNumItems(-1);
@@ -84,7 +84,7 @@ export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titl
 				translateNumItems(-10);
 				break;
 		}
-	}
+	}, [translateNumItems]);
 
     const hintTitle: HintTitleProps = useCallback((title, index) => {
         doHint(title, index, isLeftSide);

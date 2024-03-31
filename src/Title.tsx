@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { NamedTitle, CurrentSelection, HintTitleProps, RevealTitleProps } from "./types";
 import { LongPressEventType, useLongPress } from "use-long-press";
 import styled from "styled-components";
@@ -13,7 +13,7 @@ interface TitleProps {
     revealTitle: RevealTitleProps;
 }
 
-export const Title: React.FC<TitleProps> = ({title, index, selected, setCurrentSelection, hintTitle, revealTitle}) => {
+export const Title: React.FC<TitleProps> = memo( function Title({title, index, selected, setCurrentSelection, hintTitle, revealTitle}) {
     const callback = useCallback(() => {
         
         if(title.found) {
@@ -75,7 +75,7 @@ export const Title: React.FC<TitleProps> = ({title, index, selected, setCurrentS
 				{getDisplayTitle()}
 		</TitleEntry>
     )
-};
+});
 
 const TitleEntry = styled.div<{ $selected: boolean }>`
 	cursor: pointer;

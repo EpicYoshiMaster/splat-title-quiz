@@ -70,6 +70,7 @@ export const Title: React.FC<TitleProps> = memo( function Title({title, index, s
     return (
         <TitleEntry
 			$selected={selected}
+            $gaveUp={title.gaveUp}
 			{...doLongPress()}
             >
 				{getDisplayTitle()}
@@ -77,11 +78,11 @@ export const Title: React.FC<TitleProps> = memo( function Title({title, index, s
     )
 });
 
-const TitleEntry = styled.div<{ $selected: boolean }>`
+const TitleEntry = styled.div<{ $selected: boolean, $gaveUp: boolean }>`
 	cursor: pointer;
 	height: 2em;
 
-	color: ${props => props.$selected ? '#ffffff' : '#afb1b0'};
+	color: ${props => props.$selected ? (props.$gaveUp ? '#f7caca' : '#ffffff') : (props.$gaveUp ? '#998383' : '#afb1b0')};
 
 	transition: color 0.1s linear;
 `;

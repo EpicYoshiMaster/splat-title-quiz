@@ -30,7 +30,7 @@ export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titl
     const translateNumItems = useCallback((numItems: number) => {
 		const index = Math.max(Math.min(currentSelection.index + numItems, listLength - 1), 0);
 
-		setCurrentSelection({ index: index, transitionTime: 2 });
+		setCurrentSelection({ index: index, transitionTime: 1 });
 	}, [currentSelection, setCurrentSelection, listLength]);
 
 	const toPreviousUnfoundTitle = useCallback(() => {
@@ -44,10 +44,10 @@ export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titl
 		if(prev) {
 			const prevIndex = titles.indexOf(prev);
 
-			setCurrentSelection({ index: prevIndex, transitionTime: 2});
+			setCurrentSelection({ index: prevIndex, transitionTime: 1});
 		}
 		else {
-			setCurrentSelection({ index: 0, transitionTime: 2});
+			setCurrentSelection({ index: 0, transitionTime: 1});
 		}
 	}, [currentSelection, setCurrentSelection, titles, hasStartedTitles, showResults]);
 
@@ -104,7 +104,11 @@ export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titl
 				<TitleEntryBackground />
 				<TitleContent>
 					<ButtonRow $isLeft={isLeftSide}>
-						<ButtonRowItem as="button" onClick={() => { toPreviousUnfoundTitle(); }}>⇡ ???</ButtonRowItem>
+						<ButtonRowItem as="button" onClick={() => { toPreviousUnfoundTitle(); }}>
+							<UnfoundShort>⇡ ?</UnfoundShort>
+							<UnfoundLong>⇡ ???</UnfoundLong>
+						</ButtonRowItem>
+						<ButtonRowItem as="button" onClick={() => { translateNumItems(-100); }}>⤊</ButtonRowItem>
 						<ButtonRowItem as="button" onClick={() => { translateNumItems(-10); }}>⇑</ButtonRowItem>
 						<ButtonRowItem as="button" onClick={() => { translateNumItems(-1); }}>⇧</ButtonRowItem>
 					</ButtonRow>
@@ -141,7 +145,11 @@ export const TitleList: React.FC<TitleListProps> = memo(function TitleList({titl
 						</TitleEntries>
 					</TitleListWrapper>
 					<ButtonRow $isLeft={isLeftSide}>
-						<ButtonRowItem as="button" onClick={() => { toNextUnfoundTitle(); }}>⇣ ???</ButtonRowItem>
+						<ButtonRowItem as="button" onClick={() => { toNextUnfoundTitle(); }}>
+							<UnfoundShort>⇣ ?</UnfoundShort>
+							<UnfoundLong>⇣ ???</UnfoundLong>
+						</ButtonRowItem>
+						<ButtonRowItem as="button" onClick={() => { translateNumItems(100); }}>⤋</ButtonRowItem>
 						<ButtonRowItem as="button" onClick={() => { translateNumItems(10); }}>⇓</ButtonRowItem>
 						<ButtonRowItem as="button" onClick={() => { translateNumItems(1); }}>⇩</ButtonRowItem>
 					</ButtonRow>
@@ -184,6 +192,22 @@ const ButtonRowItem = styled(RowItem)`
 	padding: ${calcClampPx(2, 5, 320, 1000)} ${calcClampPx(8, 15, 320, 1000)};
 
 	background-color: #282828;
+`;
+
+const UnfoundShort = styled.div`
+	display: block;
+	
+	@media screen and (min-width: 350px) {
+		display: none;
+	}
+`;
+
+const UnfoundLong = styled.div`
+	display: none;
+	
+	@media screen and (min-width: 350px) {
+		display: block;
+	}
 `;
 
 const TitleListWrapper = styled.div`

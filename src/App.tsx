@@ -511,11 +511,15 @@ const Content = styled.div`
 		font-size: 1rem;
 	}
 
-	@media screen and (min-width: 1000px) {
+	@media screen and (min-width: 1100px) {
 		font-size: 1.5rem;
 	}
 
-	@media screen and (min-width: 1300px) {
+	@media screen and (min-width: 1200px) {
+		font-size: 1.75rem;
+	}
+
+	@media screen and (min-width: 1400px) {
 		font-size: 2rem;
 	}
 `;
@@ -604,7 +608,7 @@ const Collection = styled.div`
 	position: relative;
 	width: min(95vw, 80rem);
 	height: 35rem;
-	height: ${calcClampRem(15, 45, 600, 2000, 16, "vw")};
+	height: ${calcClampRem(15, 45, 600, 2200, 16, "vw")};
 
 	display: grid;
 	grid-template-columns: 1fr max-content 1fr;

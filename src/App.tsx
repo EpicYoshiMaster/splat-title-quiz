@@ -38,9 +38,6 @@ const RIGHT_MESSAGES = ['the Splatoon 3 Title Quiz!)', 'Splatoon 3 Title Quizzer
 const LEFT_DEFAULT_INDEX = 2;
 const RIGHT_DEFAULT_INDEX = 2;
 
-// - Fix mobile layout issues / optimization
-// - Save Progress
-
 const adjectiveList = Data.Adjective.sort(sortNoCase);
 const subjectList = Data.Subject.sort(sortNoCase);
 
@@ -501,13 +498,26 @@ const Background = styled.div`
 
 const Content = styled.div`
 	position: relative;
-	height: 100vh;
 
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	
 	color: #ffffff;
+
+	font-size: 0.6rem;
+
+	@media screen and (min-width: 700px) {
+		font-size: 1rem;
+	}
+
+	@media screen and (min-width: 1000px) {
+		font-size: 1.5rem;
+	}
+
+	@media screen and (min-width: 1300px) {
+		font-size: 2rem;
+	}
 `;
 
 //
@@ -553,11 +563,28 @@ const TitleTextEntryPairRight = styled(TitleTextEntryPair)`
 
 const TitleInput = styled.input`
 	width: ${calcClampRem(9, 20, 320, 1000, 16)};
-	height: ${calcClampRem(1.6, 3, 320, 1000, 16)};
+	//height: ${calcClampRem(1.6, 3, 320, 1000, 16)};
+	height: 1.5em;
 
 	font-family: Splatoon;
-	font-size: 1.25rem;
-	font-size: ${calcClampRem(0.8, 1.75, 320, 1000, 16)};
+
+	font-size: 1rem;
+	height: 2em;
+
+	@media screen and (min-width: 700px) {
+		font-size: 1.25rem;
+		height: 2.25em;
+	}
+
+	@media screen and (min-width: 1000px) {
+		font-size: 1.5rem;
+		height: 2em;
+	}
+
+	@media screen and (min-width: 1300px) {
+		font-size: 2rem;
+		height: 1.5em;
+	}
 
 	margin: 0 ${calcClampPx(5, 10, 400, 1100)};
 `;
@@ -577,16 +604,13 @@ const Collection = styled.div`
 	position: relative;
 	width: min(95vw, 80rem);
 	height: 35rem;
-	height: ${calcClampRem(15, 45, 600, 1200, 16, "vh")};
+	height: ${calcClampRem(15, 45, 600, 2000, 16, "vw")};
 
 	display: grid;
 	grid-template-columns: 1fr max-content 1fr;
 
 	margin: 10px 0;
 	border-radius: 1rem;
-
-	font-size: 1rem;
-	font-size: ${calcClampRem(0.6, 2, 320, 1100, 16)};
 
 	background-color: #4c4c4c;
 
@@ -628,8 +652,6 @@ const Credits = styled.div`
 
 	border: solid 5px #3d3e41;
 	border-radius: 1rem;
-
-	font-size: ${calcClampRem(1.2, 2, 320, 1100, 16)};
 `;
 
 const CreditsRow = styled.div`
@@ -638,6 +660,25 @@ const CreditsRow = styled.div`
 		color: #9025c6;
 	}
 
-	font-size: 1rem;
-	font-size: ${calcClampRem(0.8, 1.75, 500, 1100, 16)};
+	font-size: 0.6rem;
+
+	@media screen and (min-width: 500px) {
+		font-size: 0.8rem;
+	}
+
+	@media screen and (min-width: 500px) {
+		font-size: 1rem;
+	}
+
+	@media screen and (min-width: 600px) {
+		font-size: 1.25rem;
+	}
+
+	@media screen and (min-width: 750px) {
+		font-size: 1.5rem;
+	}
+
+	@media screen and (min-width: 1000px) {
+		font-size: 1.75rem;
+	}
 `;

@@ -182,6 +182,7 @@ const ButtonRow = styled.div<{ $isLeft: boolean}>`
 const ButtonRowItem = styled(RowItem)`
 	padding: 5px 15px;
 	padding: ${calcClampPx(2, 5, 320, 1000)} ${calcClampPx(8, 15, 320, 1000)};
+
 	background-color: #282828;
 `;
 
@@ -211,6 +212,7 @@ const TitleEntries = styled.div<{ $isLeft: boolean, $transitionTime: number}>`
 const TitleEntryBackground = styled.div`
 	position: absolute;
 	height: 2em;
+
 	width: 100%;
 	background-color: #282828;
 `;

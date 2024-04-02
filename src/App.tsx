@@ -455,6 +455,8 @@ function App() {
 				<CreditsRow>You can press on a specific title to get a hint.</CreditsRow>
 				<CreditsRow>Or, press and hold on a title to reveal it.</CreditsRow>
 				<CreditsRow>Created by <a href='https://twitter.com/EpicYoshiMaster'>EpicYoshiMaster</a>!</CreditsRow>
+				<CreditsRow>Title data taken from  <a href='https://twitter.com/LeanYoshi/'>LeanYoshi</a>'s Splatoon Database!</CreditsRow>
+				<CreditsRow>Splatoon and its associated content are property of Nintendo.</CreditsRow>
 				<CreditsRow><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></CreditsRow>
 			</Credits>
 		</Content>

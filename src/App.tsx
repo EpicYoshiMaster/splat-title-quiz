@@ -416,12 +416,12 @@ function App() {
   			</TopRow>
 			<TitleEntryArea>
 				<TitleTextEntryPair>
-					<AdjectiveText>Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
-					<TitleInput type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, setAdjectiveInput, true); }} />
+					<AdjectiveText htmlFor="adjective-input">Adjectives ({`${numAdjectives}/${adjectives.length}`})</AdjectiveText>
+					<TitleInput id="adjective-input" type="string" value={adjectiveInput} onChange={(event) => { checkInput(event.target.value, setAdjectiveInput, true); }} />
 				</TitleTextEntryPair>
 				<TitleTextEntryPairRight>
-					<TitleInput type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, setSubjectInput, false); }} />
-					<SubjectText>Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
+					<TitleInput id="subject-input" type="string" value={subjectInput} onChange={(event) => { checkInput(event.target.value, setSubjectInput, false); }} />
+					<SubjectText htmlFor="subject-input">Subjects ({`${numSubjects}/${subjects.length}`})</SubjectText>
 				</TitleTextEntryPairRight>
 			</TitleEntryArea>
 			<Collection>
@@ -454,10 +454,11 @@ function App() {
 				<CreditsRow>There are a LOT of titles in this game, how many can you name??</CreditsRow>
 				<CreditsRow>You can press on a specific title to get a hint.</CreditsRow>
 				<CreditsRow>Or, press and hold on a title to reveal it.</CreditsRow>
-				<CreditsRow>Created by <a href='https://twitter.com/EpicYoshiMaster'>EpicYoshiMaster</a>!</CreditsRow>
+				<CreditsRow>Created by <a href='https://epicyoshimaster.neocities.org/'>EpicYoshiMaster</a>!</CreditsRow>
 				<CreditsRow>Title data taken from  <a href='https://twitter.com/LeanYoshi/'>LeanYoshi</a>'s Splatoon Database!</CreditsRow>
 				<CreditsRow>Splatoon and its associated content are property of Nintendo.</CreditsRow>
 				<CreditsRow><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></CreditsRow>
+				<CreditsRow>Updated for Ver. 9.0.0! (You'll need to reset your current game!)</CreditsRow>
 			</Credits>
 		</Content>
 	</>
@@ -595,7 +596,7 @@ const TitleInput = styled.input`
 	margin: 0 ${calcClampPx(5, 10, 400, 1100)};
 `;
 
-const AdjectiveText = styled.div`
+const AdjectiveText = styled.label`
 	font-size: ${calcClampRem(0.8, 1.75, 320, 1000, 16)};
 `
 
@@ -663,7 +664,7 @@ const Credits = styled.div`
 const CreditsRow = styled.div`
 
 	& a {
-		color: #9025c6;
+		color: #a02adb;
 	}
 
 	font-size: 0.6rem;

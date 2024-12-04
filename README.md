@@ -6,6 +6,8 @@ This is a fun quiz website I made to test your knowledge of the absurd amount of
 
 It's made with TypeScript and React and has a few hidden surprises...
 
+Play it for yourself at [epicyoshimaster.github.io/splat-title-quiz](https://epicyoshimaster.github.io/splat-title-quiz/)!
+
 ## Images
 
 ![splat-title-quiz Layout](./screenshots/quizLayout.png)

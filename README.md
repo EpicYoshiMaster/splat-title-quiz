@@ -6,8 +6,21 @@ This is a fun quiz website I made to test your knowledge of the absurd amount of
 
 It's made with TypeScript and React and has a few hidden surprises...
 
-# Contact
+## Images
 
-Have any suggestions or run into any issues? Let me know!
-- [Discord](https://discord.gg/vgAu5W5)
-- [Twitter](https://twitter.com/EpicYoshiMaster)
+![splat-title-quiz Layout](./screenshots/quizLayout.png)
+
+The layout of the page.
+
+![splat-title-quiz Introductory Screen](./screenshots/quizIntro.png)
+
+The introductory screen!
+
+![splat-title-quiz Ending Screen](./screenshots/quizEnding.png)
+
+The ending screen! You can also select Show Titles to view the full list and see which ones you missed!
+
+## Support
+
+If you like the things I make, consider supporting me on my ko-fi page: [https://ko-fi.com/epicyoshimaster](https://ko-fi.com/epicyoshimaster)!
+

@@ -458,7 +458,7 @@ function App() {
 				<CreditsRow>Title data taken from  <a href='https://twitter.com/LeanYoshi/'>LeanYoshi</a>'s Splatoon Database!</CreditsRow>
 				<CreditsRow>Splatoon and its associated content are property of Nintendo.</CreditsRow>
 				<CreditsRow><a href='https://github.com/EpicYoshiMaster/splat-title-quiz'>View the source here! </a><GithubLogo /></CreditsRow>
-				<CreditsRow>Updated for Ver. 9.0.0! (You'll need to reset your current game!)</CreditsRow>
+				<CreditsRow>Updated for Ver. 10.0.0! (You'll need to reset your current game!)</CreditsRow>
 			</Credits>
 		</Content>
 	</>
